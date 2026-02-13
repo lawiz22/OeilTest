@@ -1,0 +1,27 @@
+{
+  "clients": {
+    "period": "M",
+    "expected_time": "09:30",
+    "sla_minutes": 60,
+    "timezone": "America/Montreal"
+  },
+  "accounts": {
+    "period": "QS",
+    "expected_time": "02:00",
+    "sla_minutes": 90,
+    "timezone": "America/Montreal",
+    "qs_days": [1, 2, 3]
+  },
+  "transactions": {
+    "period": "Q",
+    "expected_time": "03:00",
+    "sla_minutes": 30,
+    "timezone": "America/Montreal"
+  },
+  "contracts": {
+    "period": "M",
+    "expected_time": "04:00",
+    "sla_minutes": 120,
+    "timezone": "America/Montreal"
+  }
+}

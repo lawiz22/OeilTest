@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="a7cad1cd-3d75-4acc-9ad2-d4c9cf7c0d3a" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/OeilTest.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/azcopy_uploader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/create_schema.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ctrl_generator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dataset_schedule.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/extractor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/fake_data_generator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/generate_fake_data.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/oeil/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/oeil/config.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/oeil/model.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/oeil/oeil_validate.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/oeil/runner.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/oeil/test_conn_token.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/oeil/validator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ok_ctrl.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/reset_oeil_environment.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/run_extractions.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/run_sla_compute.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/run_vigie_faker.py.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/run_vigie_sla_finalize.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/schemas.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/sql_writer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/sqlite_schema.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vigie_faker.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="113" />
+    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/generate_fake_data.py" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="38wzgJmc0GQS0M6UADDaCKjYbd3" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python tests.Python tests in test_ctrl.py.executor": "Run",
+    "Python.azcopy_uploader.executor": "Run",
+    "Python.create_schema.executor": "Run",
+    "Python.generate_fake_data.executor": "Run",
+    "Python.ok_ctrl.executor": "Run",
+    "Python.reset_oeil_environment.executor": "Run",
+    "Python.run_extractions.executor": "Run",
+    "Python.run_extractor_vigie.executor": "Run",
+    "Python.run_sla_compute.executor": "Run",
+    "Python.run_vigie_faker.py.executor": "Run",
+    "Python.run_vigie_sla_finalize.executor": "Run",
+    "Python.schemas.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "ai.playground.ignore.import.keys.banner.in.settings": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Louis-Martin Richard\PycharmProjects\OeilTest\Oeil" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="ok_ctrl" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="OeilTest" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/ok_ctrl.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Python tests in ok_ctrl.py" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="OeilTest" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/ok_ctrl.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.ok_ctrl" />
+        <item itemvalue="Python tests.Python tests in ok_ctrl.py" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-PY-253.30387.127" />
+        <option value="bundled-python-sdk-3944b0c99280-6d6dccd035ac-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.30387.127" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="a7cad1cd-3d75-4acc-9ad2-d4c9cf7c0d3a" name="Changes" comment="" />
+      <created>1769725532086</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1769725532086</updated>
+      <workItem from="1769725533085" duration="1719000" />
+      <workItem from="1769745382214" duration="8050000" />
+      <workItem from="1769786508236" duration="959000" />
+      <workItem from="1769787495064" duration="178000" />
+      <workItem from="1769787725989" duration="142000" />
+      <workItem from="1769787887710" duration="106000" />
+      <workItem from="1769788296944" duration="5943000" />
+      <workItem from="1769797242576" duration="30544000" />
+      <workItem from="1769956585009" duration="175750000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/oeil/runner.py</url>
+          <line>8</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/OeilTest$run_sla_compute.coverage" NAME="run_sla_compute Coverage Results" MODIFIED="1770511538953" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$ok_ctrl.coverage" NAME="ok_ctrl Coverage Results" MODIFIED="1770216335252" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$run_vigie_sla_finalize.coverage" NAME="run_vigie_sla_finalize Coverage Results" MODIFIED="1770936619416" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$generate_fake_data.coverage" NAME="generate_fake_data Coverage Results" MODIFIED="1769747871999" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$schemas.coverage" NAME="schemas Coverage Results" MODIFIED="1769881836783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$.coverage" NAME=" Coverage Results" MODIFIED="1770216123137" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$run_extractor_vigie.coverage" NAME="run_extractor_vigie Coverage Results" MODIFIED="1770237012469" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$run_extractions.coverage" NAME="run_extractions Coverage Results" MODIFIED="1770989861224" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$run_vigie_faker_py.coverage" NAME="run_vigie_faker.py Coverage Results" MODIFIED="1770936397516" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$reset_oeil_environment.coverage" NAME="reset_oeil_environment Coverage Results" MODIFIED="1770662224598" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$create_schema.coverage" NAME="create_schema Coverage Results" MODIFIED="1769788616644" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/OeilTest$azcopy_uploader.coverage" NAME="azcopy_uploader Coverage Results" MODIFIED="1770989872113" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+</project>
