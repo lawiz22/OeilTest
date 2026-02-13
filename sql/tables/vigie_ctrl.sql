@@ -91,6 +91,10 @@ CREATE TABLE [dbo].[vigie_ctrl](
 	[synapse_cost_estimated_cad] [decimal](10, 6) NULL,
 	[synapse_cost_rate_cad_per_min] [decimal](10, 6) NULL,
 
+	-- Policy
+	[policy_dataset_id] [int] NULL,
+	[policy_snapshot_json] [nvarchar](max) NULL,
+
 	-- Hash payload (intégrité)
 	[payload_canonical] [varchar](500) NULL,
 	[payload_hash_sha256] [char](64) NULL,
