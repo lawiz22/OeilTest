@@ -6,6 +6,20 @@ L'ŒIL est un framework de contrôle qualité des données conçu pour les envir
 
 ---
 
+## 📊 Dashboard Power BI
+
+![Dashboard principal L'ŒIL — Vue d'ensemble des runs, SLA par moteur (ADF/Synapse/ŒIL), performance et problèmes](docs/screenshots/powerbi_dashboard_main.png)
+
+| Section | Contenu |
+|---|---|
+| **Runs Total** | 212 runs, répartis en FAST (194), SLOW (17), VERY SLOW (1) |
+| **Santé globale** | SLA OK par moteur : ADF (190), Synapse (175), ŒIL (211) |
+| **Performance / Durée** | Durée moyenne ADF (4.8K sec), Synapse (117s), ŒIL (166s) |
+| **Problèmes / Fail** | ADF FAIL (22), Synapse FAIL (37), ŒIL FAIL (1) |
+| **Volume** | 97 Volume Issue Runs, Volume Drift Detected |
+
+---
+
 ## 🏗️ Architecture
 
 ```
@@ -83,6 +97,9 @@ OeilTest/
 │   ├── dataset_schedule.json      # Schedule par dataset
 │   └── sample_ctrl.json           # Exemple fichier CTRL v2
 ├── azcopy_uploader.py             # Upload Bronze → ADLS
+├── docs/
+│   └── screenshots/                # Captures d'écran (Power BI, etc.)
+│       └── powerbi_dashboard_main.png
 ├── requirements.txt
 └── README.md
 ```
