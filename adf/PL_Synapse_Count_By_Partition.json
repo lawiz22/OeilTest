@@ -1,0 +1,292 @@
+{
+    "name": "PL_Synapse_Count_By_Partition",
+    "properties": {
+        "activities": [
+            {
+                "name": "SC_Synapse_Count_BRONZE",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "v_parquet_path",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_Synapse_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "type": "Query",
+                            "text": {
+                                "value": "USE oeil_serverless;\n\nSELECT\n  COUNT_BIG(1) AS row_count\nFROM OPENROWSET(\n  BULK '@{variables('v_bronze_path')}',\n  DATA_SOURCE = 'ds_adls_bronze',\n  FORMAT = 'CSV',\n  FIRSTROW = 2\n)\nWITH (dummy varchar(1)) AS rows;",
+                                "type": "Expression"
+                            }
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "SC_Write_Bronze_Cache",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Synapse_Count_BRONZE",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "parameters": [
+                                {
+                                    "name": "dataset",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_dataset",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                },
+                                {
+                                    "name": "periodicity",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_periodicity",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                },
+                                {
+                                    "name": "extraction_date",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_extraction_date",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                },
+                                {
+                                    "name": "row_count",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@int(\n  activity('SC_Synapse_Count_BRONZE')\n    .output\n    .resultSets[0]\n    .rows[0]\n    .row_count\n)",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                }
+                            ],
+                            "type": "Query",
+                            "text": "MERGE dbo.synapse_rowcount_cache AS tgt\nUSING (\n    SELECT\n        @dataset                    AS dataset,\n        @periodicity               AS periodicity,\n        CAST(@extraction_date AS date) AS extraction_date,\n        'BRONZE'                    AS layer,\n        @row_count                  AS row_count\n) AS src\nON  tgt.dataset = src.dataset\nAND tgt.periodicity = src.periodicity\nAND tgt.extraction_date = src.extraction_date\nAND tgt.layer = src.layer\nWHEN MATCHED THEN\n    UPDATE SET\n        row_count = src.row_count,\n        computed_ts = SYSUTCDATETIME()\nWHEN NOT MATCHED THEN\n    INSERT (dataset, periodicity, extraction_date, layer, row_count)\n    VALUES (src.dataset, src.periodicity, src.extraction_date, src.layer, src.row_count);\n"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "SC_Synapse_Count_PARQUET",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Write_Bronze_Cache",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_Synapse_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "type": "Query",
+                            "text": {
+                                "value": "USE oeil_serverless;\n\nSELECT\n    COUNT_BIG(1) AS row_count\nFROM OPENROWSET(\n    BULK '@{variables('v_parquet_path')}',\n    DATA_SOURCE = 'ds_adls_standardized',\n  FORMAT = 'PARQUET'\n) AS rows;\n",
+                                "type": "Expression"
+                            }
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "SC_Write_Parquet_Cache",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Synapse_Count_PARQUET",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "parameters": [
+                                {
+                                    "name": "dataset",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_dataset",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                },
+                                {
+                                    "name": "periodicity",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_periodicity",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                },
+                                {
+                                    "name": "extraction_date",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_extraction_date",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                },
+                                {
+                                    "name": "row_count",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@int(\n  activity('SC_Synapse_Count_PARQUET')\n    .output\n    .resultSets[0]\n    .rows[0]\n    .row_count\n)",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                }
+                            ],
+                            "type": "Query",
+                            "text": "MERGE dbo.synapse_rowcount_cache AS tgt\nUSING (\n    SELECT\n        @dataset                    AS dataset,\n        @periodicity                        AS periodicity,\n        CAST(@extraction_date AS date) AS extraction_date,\n        'PARQUET'                   AS layer,\n        @row_count                  AS row_count\n) AS src\nON  tgt.dataset = src.dataset\nAND tgt.periodicity = src.periodicity\nAND tgt.extraction_date = src.extraction_date\nAND tgt.layer = src.layer\nWHEN MATCHED THEN\n    UPDATE SET\n        row_count = src.row_count,\n        computed_ts = SYSUTCDATETIME()\nWHEN NOT MATCHED THEN\n    INSERT (dataset, periodicity, extraction_date, layer, row_count)\n    VALUES (src.dataset, src.periodicity, src.extraction_date, src.layer, src.row_count);\n"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "v_parquet_path",
+                "description": "",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "v_bronze_path",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "v_parquet_path",
+                    "value": {
+                        "value": "@concat(\n  'standardized/',\n  pipeline().parameters.p_dataset,\n  '/year=', substring(pipeline().parameters.p_extraction_date,0,4),\n  '/month=', substring(pipeline().parameters.p_extraction_date,5,2),\n  '/day=', substring(pipeline().parameters.p_extraction_date,8,2),\n  '/*.parquet'\n)\n",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "v_bronze_path",
+                "description": "",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "policy": {
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "v_bronze_path",
+                    "value": {
+                        "value": "@concat(\n  'bronze/',\n  pipeline().parameters.p_dataset,\n  '/period=',\n  pipeline().parameters.p_periodicity,\n  '/year=', formatDateTime(pipeline().parameters.p_extraction_date,'yyyy'),\n  '/month=', formatDateTime(pipeline().parameters.p_extraction_date,'MM'),\n  '/day=', formatDateTime(pipeline().parameters.p_extraction_date,'dd'),\n  '/data/*.csv'\n)\n",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "p_dataset": {
+                "type": "string"
+            },
+            "p_periodicity": {
+                "type": "string"
+            },
+            "p_bronze_path": {
+                "type": "string"
+            },
+            "p_parquet_path": {
+                "type": "string"
+            },
+            "p_extraction_date": {
+                "type": "string"
+            }
+        },
+        "variables": {
+            "v_bronze_path": {
+                "type": "String"
+            },
+            "v_parquet_path": {
+                "type": "String"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-02-09T03:17:02Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
