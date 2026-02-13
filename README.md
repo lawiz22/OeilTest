@@ -72,10 +72,12 @@ OeilTest/
 │   │   ├── transactions.sql
 │   │   └── contracts.sql
 │   └── procedures/                # Stored Procedures
-│       ├── SP_Compute_SLA_OEIL.sql
-│       ├── SP_Compute_SLA_ADF.sql
-│       ├── SP_Compute_SLA_SYNAPSE.sql
-│       └── SP_Compute_SLA_Vigie.sql
+│       ├── SP_Set_Start_TS_OEIL.sql   # Lifecycle : ouvre un run
+│       ├── SP_Set_End_TS_OEIL.sql     # Lifecycle : ferme un run + SLA
+│       ├── SP_Compute_SLA_OEIL.sql    # SLA L'ŒIL (overhead fixe)
+│       ├── SP_Compute_SLA_ADF.sql     # SLA ADF (volume-based)
+│       ├── SP_Compute_SLA_SYNAPSE.sql # SLA Synapse (overhead fixe)
+│       └── SP_Compute_SLA_Vigie.sql   # SLA global par dataset (futur)
 ├── adf/                           # Pipeline JSON ADF
 ├── config/
 │   ├── dataset_schedule.json      # Schedule par dataset
@@ -376,6 +378,118 @@ Table tampon pour éviter les requêtes Synapse coûteuses et répétitives. Sto
 | `computed_ts` | datetime2(7) | Auto : timestamp du calcul (UTC) |
 
 > **Design** : PK composite à 4 colonnes = un row count unique par combinaison dataset + periodicité + date + layer. Pas de surrogate key — la clé naturelle suffit pour le cache.
+
+---
+
+## ⚙️ Stored Procedures
+
+### Lifecycle d'un run
+
+```
+SP_Set_Start_TS_OEIL          SP_Set_End_TS_OEIL
+┌────────────────────┐     ┌─────────────────────────┐
+│ Crée la ligne si   │     │ Pose end_ts             │
+│ elle n'existe pas  │     │ Calcule duration_sec    │
+│ Pose start_ts      │ ──▶ │ Charge profil SLA OEIL  │
+│ (idempotent)       │     │ Évalue verdict OK/FAIL  │
+│ IN_PROGRESS        │     │ (atomique)              │
+└────────────────────┘     └─────────────────────────┘
+```
+
+### Récapitulatif
+
+| SP | Type | Moteur | Profil SLA utilisé | Formule |
+|---|---|---|---|---|
+| `SP_Set_Start_TS_OEIL` | ⏱️ Lifecycle | — | — | Crée/ouvre le run |
+| `SP_Set_End_TS_OEIL` | ⏱️ Lifecycle | OEIL | `sla_profile_execution_type` | Ferme le run + SLA inline |
+| `SP_Compute_SLA_ADF` | 📊 Calcul | ADF | `sla_profile_execution_type` | overhead + rows×cost |
+| `SP_Compute_SLA_OEIL` | 📊 Calcul | OEIL | `sla_profile_execution_type` | overhead fixe |
+| `SP_Compute_SLA_SYNAPSE` | 📊 Calcul | SYNAPSE | `sla_profile_execution_type` | overhead fixe |
+| `SP_Compute_SLA_Vigie` | 📊 Calcul | Global | `sla_profile` (par dataset) | overhead + rows×cost |
+
+### ⏱️ `SP_Set_Start_TS_OEIL` — Ouvrir un run
+
+**Point d'entrée opérationnel** appelé par le runner Python au début de chaque run.
+
+| Paramètre | Type | Description |
+|---|---|---|
+| `@ctrl_id` | nvarchar(200) | Identifiant unique du run |
+| `@dataset` | nvarchar(100) | Nom du dataset |
+| `@periodicity` | nvarchar(10) | Fréquence (D/W/M/Q) |
+| `@extraction_date` | date | Date d'extraction |
+| `@source_system` | nvarchar(50) | Système source (optionnel) |
+
+- **INSERT** si le ctrl_id n'existe pas encore (contrat minimal)
+- **UPDATE** `start_ts` une seule fois (`WHERE start_ts IS NULL` → idempotent)
+- Set `status_global = 'IN_PROGRESS'`
+
+### ⏱️ `SP_Set_End_TS_OEIL` — Fermer un run + SLA
+
+**Point de sortie opérationnel** — ferme le chrono et calcule le SLA en une opération atomique.
+
+| Paramètre | Type | Description |
+|---|---|---|
+| `@ctrl_id` | nvarchar(200) | Identifiant du run |
+
+- Capture `end_ts = SYSUTCDATETIME()` dans variable locale (consistance)
+- Calcule `duration_sec = DATEDIFF(SECOND, start_ts, end_ts)`
+- Charge profil SLA OEIL + calcule verdict
+- **Fallback gracieux** : écrit les métriques de durée même si profil SLA absent
+- Erreurs : `MISSING_START_TS`, `NO_SLA_PROFILE`
+
+### 📊 `SP_Compute_SLA_ADF` — SLA ADF
+
+Calcul SLA pour Azure Data Factory. **Seul moteur utilisant `sec_per_1k_rows`** car le temps d'ingestion est proportionnel au volume.
+
+```
+sla_expected  = base_overhead_sec + (rows / 1000) × sec_per_1k_rows
+sla_threshold = sla_expected × (1 + tolerance_pct)
+verdict       = duration ≤ threshold ? OK : FAIL
+```
+
+- Lit `row_count_adf_ingestion_copie_parquet` + `adf_duration_sec`
+- Écrit dans les champs `adf_sla_*`
+- Erreurs : `NO_ADF_METRICS`, `NO_ADF_SLA_PROFILE`
+
+### 📊 `SP_Compute_SLA_OEIL` — SLA L'ŒIL
+
+Calcul SLA pur pour le moteur L'ŒIL (suppose que `end_ts` existe déjà).
+
+```
+sla_expected  = base_overhead_sec           (fixe, 360s par défaut)
+sla_threshold = sla_expected × (1 + 0.22)
+```
+
+- Lit `start_ts`, `end_ts`, `duration_sec`
+- Écrit dans les champs `oeil_sla_*`
+- Erreurs : `MISSING_TIMESTAMPS`, `NO_SLA_PROFILE`
+
+### 📊 `SP_Compute_SLA_SYNAPSE` — SLA Synapse
+
+Calcul SLA pour le compute Synapse. Même logique overhead fixe que OEIL, mais seuil plus court et tolérance plus large.
+
+```
+sla_expected  = base_overhead_sec           (fixe, 120s par défaut)
+sla_threshold = sla_expected × (1 + 0.30)
+```
+
+- Lit `synapse_duration_sec`
+- Écrit dans les champs `synapse_sla_*`
+- Erreurs : `NO_SYNAPSE_METRICS`, `NO_SYNAPSE_SLA_PROFILE`
+
+### 📊 `SP_Compute_SLA_Vigie` — SLA Global par dataset
+
+**Feature future** — calcul SLA global utilisant `sla_profile` (par dataset) au lieu de `sla_profile_execution_type` (par moteur).
+
+```
+sla_expected  = base_overhead_sec + (rows / 1000) × sec_per_1k_rows
+sla_threshold = sla_expected × (1 + tolerance_pct)
+```
+
+- Lookup profil par `dataset` (pas par execution_type)
+- Écrit dans les champs `sla_*` globaux
+- Raisons descriptives : `OK_WITHIN_THRESHOLD` / `EXCEEDED_THRESHOLD`
+- Erreurs : `NO_ADF_METRICS`, `NO_SLA_PROFILE`
 
 ---
 
