@@ -14,7 +14,7 @@ CHAOS :
 """
 
 from datetime import datetime, timedelta
-from vigie_faker import write_fake_vigie_run
+from python.core.vigie_faker import write_fake_vigie_run
 
 # =====================================================
 # 🔧 CONFIG — TOUCHE ICI

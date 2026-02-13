@@ -1,7 +1,7 @@
 import shutil
 import sqlite3
 from pathlib import Path
-from sqlite_schema import SCHEMA_SQL, DB_PATH
+from python.core.sqlite_schema import SCHEMA_SQL, DB_PATH
 
 # ==========================================
 # PATHS

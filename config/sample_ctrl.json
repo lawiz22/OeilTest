@@ -1,0 +1,28 @@
+{
+    "ctrl_id": "accounts_2026-10-08_Q",
+    "dataset": "accounts",
+    "periodicity": "Q",
+    "extraction_date": "2026-10-08",
+    "volume": {
+        "expected_rows": 1261,
+        "actual_rows": 1261,
+        "delta": 0
+    },
+    "integrity": {
+        "min_max": {
+            "column": "account_id",
+            "min": 100001,
+            "max": 198772
+        },
+        "checksum": {
+            "column": "account_id",
+            "algorithm": "SHA256",
+            "value": "ab3290c9..."
+        }
+    },
+    "metadata": {
+        "source_system": "LEGACY_DS",
+        "generated_ts": "2026-10-08T03:12:45Z",
+        "payload_hash_sha256": "e4f8a2b1c3d5..."
+    }
+}

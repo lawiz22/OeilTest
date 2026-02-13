@@ -1,4 +1,4 @@
-from extractor import insert_ctrl_index_sql
+from python.core.extractor import insert_ctrl_index_sql
 
 if __name__ == "__main__":
     insert_ctrl_index_sql(

@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 import random
 
-from extractor import extract_dataset
-from sqlite_schema import ensure_schema
+from python.core.extractor import extract_dataset
+from python.core.sqlite_schema import ensure_schema
 
 # =====================================================
 # GLOBAL CONFIG
@@ -10,8 +10,8 @@ from sqlite_schema import ensure_schema
 CONFIG = {
     "tables": ["clients"],
 
-    "start_date": "2026-09-01",
-    "end_date": "2026-09-30",
+    "start_date": "2026-12-01",
+    "end_date": "2026-12-30",
 
     # ============================
     # VOLUME CONFIG
