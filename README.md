@@ -93,7 +93,8 @@ OeilTest/
 │       ├── SP_Compute_SLA_SYNAPSE.sql # SLA Synapse (overhead fixe)
 │       └── SP_Compute_SLA_Vigie.sql   # SLA global par dataset (futur)
 ├── adf/                           # Pipeline JSON ADF
-│   └── PL_Bronze_Event_Master.json # Event-driven Bronze ingestion
+│   ├── PL_Bronze_Event_Master.json # Event-driven Bronze ingestion
+│   └── PL_Bronze_To_Standardized_Parquet.json # CSV → Parquet + .done
 ├── config/
 │   ├── dataset_schedule.json      # Schedule par dataset
 │   └── sample_ctrl.json           # Exemple fichier CTRL v2
@@ -101,7 +102,8 @@ OeilTest/
 ├── docs/
 │   └── screenshots/                # Captures d'écran
 │       ├── powerbi_dashboard_main.png
-│       └── adf_pl_bronze_event_master.png
+│       ├── adf_pl_bronze_event_master.png
+│       └── adf_pl_bronze_to_standardized_parquet.png
 ├── requirements.txt
 └── README.md
 ```
@@ -543,6 +545,54 @@ ctrl_id = {table}_{year}-{month}-{day}_{period}
 ```
 
 > **Design** : Le pipeline ne fait aucun traitement lui-même — il décompose le chemin et délègue. C'est le pattern *event router* : le trigger blob active ce pipeline, qui parse et route vers le pipeline de transformation.
+
+### `PL_Bronze_To_Standardized_Parquet` — Conversion CSV → Parquet
+
+![PL_Bronze_To_Standardized_Parquet — Pipeline ADF qui convertit les CSV Bronze en Parquet standardisé, puis écrit un fichier .done comme signal de complétion](docs/screenshots/adf_pl_bronze_to_standardized_parquet.png)
+
+**Rôle** : Pipeline de transformation appelé par `PL_Bronze_Event_Master`. Convertit les CSV du lake Bronze en Parquet standardisé, puis écrit un fichier `.done` comme signal de complétion.
+
+**Flux :**
+
+```
+DS_Bronze_CSV (*.csv)                DS_Standardized_Parquet
+┌──────────────────┐        ┌──────────────────────┐
+│  Bronze CSV     │ ─Copy─▶ │  Parquet Standardized  │
+│  (ADLS Gen2)    │        │  (ADLS Gen2, merged)   │
+└──────────────────┘        └──────────────────────┘
+         │                              │
+         │  On Success                  │
+         │  ┌───────────────────────┐   │
+         └─▶│ Copy fichier .done    │   │
+            │ {ctrl_id}.done        │   │
+            │ → Bronze Control      │   │
+            └───────────────────────┘   │
+```
+
+**Activités :**
+
+| # | Activité | Type | Source | Destination | Dépendance |
+|---|---|---|---|---|---|
+| 1 | **Bronze To Standard** | Copy | `DS_Bronze_CSV` (*.csv) | `DS_Standardized_Parquet` (merged) | — |
+| 2 | **Copy fichier done** | Copy | `DS_BRONZE_Template` | `DS_Bronze_Control_Folder` ({ctrl_id}.done) | #1 Succeeded |
+
+**Paramètres :**
+
+| Paramètre | Type | Description |
+|---|---|---|
+| `p_table` | string | Nom de la table/dataset |
+| `p_period` | string | Périodicité (D/W/M/Q) |
+| `p_year` | string | Année d'extraction |
+| `p_month` | string | Mois d'extraction |
+| `p_day` | string | Jour d'extraction |
+| `p_ctrl_id` | string | Identifiant de contrôle |
+| `enable_synapse_validation` | bool | Active la validation Synapse (default `true`) |
+
+**User Properties** (traçabilité dans les logs ADF) :
+- `p_ctrl_id` → lié au `ctrl_id` de `vigie_ctrl`
+- `p_pipeline_run_id` → `@pipeline().RunId` (corrélation avec les logs)
+
+> **Design** : Le pattern `.done` file est un signal de complétion — après la conversion réussie, le fichier `{ctrl_id}.done` est déposé dans le dossier de contrôle Bronze. Ça permet aux processus downstream de détecter qu'une extraction est terminée sans polling.
 
 ---
 

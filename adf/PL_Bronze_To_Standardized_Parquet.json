@@ -1,0 +1,178 @@
+{
+    "name": "PL_Bronze_To_Standardized_Parquet",
+    "properties": {
+        "activities": [
+            {
+                "name": "Bronze To Standard",
+                "type": "Copy",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [
+                    {
+                        "name": "p_ctrl_id",
+                        "value": "@pipeline().parameters.p_ctrl_id"
+                    },
+                    {
+                        "name": "p_pipeline_run_id",
+                        "value": "@pipeline().RunId"
+                    }
+                ],
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": true,
+                            "wildcardFileName": "*.csv",
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextReadSettings"
+                        }
+                    },
+                    "sink": {
+                        "type": "ParquetSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings",
+                            "copyBehavior": "MergeFiles"
+                        },
+                        "formatSettings": {
+                            "type": "ParquetWriteSettings"
+                        }
+                    },
+                    "enableStaging": false,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "typeConversion": true,
+                        "typeConversionSettings": {
+                            "allowDataTruncation": true,
+                            "treatBooleanAsNumber": false
+                        }
+                    }
+                },
+                "inputs": [
+                    {
+                        "referenceName": "DS_Bronze_CSV",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "p_table": {
+                                "value": "@pipeline().parameters.p_table",
+                                "type": "Expression"
+                            },
+                            "p_period": "@pipeline().parameters.p_period",
+                            "p_year": "@pipeline().parameters.p_year",
+                            "p_month": "@pipeline().parameters.p_month",
+                            "p_day": "@pipeline().parameters.p_day"
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "DS_Standardized_Parquet",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "p_table": "@pipeline().parameters.p_table",
+                            "p_year": "@pipeline().parameters.p_year",
+                            "p_month": {
+                                "value": "@pipeline().parameters.p_month",
+                                "type": "Expression"
+                            },
+                            "p_day": "@pipeline().parameters.p_day"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "Copy fichier done",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "Bronze To Standard",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "BinarySource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": true
+                        },
+                        "formatSettings": {
+                            "type": "BinaryReadSettings"
+                        }
+                    },
+                    "sink": {
+                        "type": "BinarySink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings",
+                            "copyBehavior": "FlattenHierarchy"
+                        }
+                    },
+                    "enableStaging": false
+                },
+                "inputs": [
+                    {
+                        "referenceName": "DS_BRONZE_Template",
+                        "type": "DatasetReference"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "DS_Bronze_Control_Folder",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "p_filename": {
+                                "value": "@concat(pipeline().parameters.p_ctrl_id, '.done')",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                ]
+            }
+        ],
+        "parameters": {
+            "p_table": {
+                "type": "string"
+            },
+            "p_period": {
+                "type": "string"
+            },
+            "p_year": {
+                "type": "string"
+            },
+            "p_month": {
+                "type": "string"
+            },
+            "p_day": {
+                "type": "string"
+            },
+            "p_ctrl_id": {
+                "type": "string"
+            },
+            "enable_synapse_validation": {
+                "type": "bool",
+                "defaultValue": true
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-02-09T18:13:03Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
