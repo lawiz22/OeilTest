@@ -4,6 +4,15 @@
 
 L'ŒIL est un framework de contrôle qualité des données conçu pour les environnements Azure. Il orchestre la validation de volumes, de SLA, d'intégrité et de coûts à travers Azure Data Factory, Synapse, Azure SQL et Log Analytics.
 
+
+![Build](https://img.shields.io/badge/build-manual-lightgrey)
+![Coverage](https://img.shields.io/badge/coverage-n/a-lightgrey)
+![Version](https://img.shields.io/badge/version-2.0-blue)
+![License](https://img.shields.io/badge/license-Internal-red)
+![Azure](https://img.shields.io/badge/platform-Azure-0078D4)
+![Framework](https://img.shields.io/badge/type-Policy%20Driven%20Framework-purple)
+
+
 ---
 
 ## 📊 Dashboard Power BI
@@ -190,6 +199,58 @@ vigie_policy_table          vigie_policy_test
                             │ compute_cost              │
                             └──────────────────────────┘
 ```
+---
+
+## 🧾 Policy JSON Sample (Exportable)
+
+La policy est stockée en SQL comme source de vérité.
+Elle peut être exportée en JSON dans le Data Lake pour audit, versioning ou traçabilité.
+
+### 🔹 Exemple complet
+
+```json
+{
+  "dataset": "accounts",
+  "environment": "PROD",
+  "is_active": true,
+  "synapse_allowed": true,
+  "max_synapse_cost_usd": 5.00,
+
+  "integrity_policy": {
+
+    "row_count": {
+      "enabled": true,
+      "frequency": "DAILY",
+      "threshold_delta_percent": 5
+    },
+
+    "min_max": {
+      "enabled": true,
+      "column": "account_id",
+      "frequency": "DAILY"
+    },
+
+    "checksum": {
+      "enabled": true,
+      "column": "account_id",
+      "algorithm": "SHA256",
+      "frequency": "WEEKLY"
+    },
+
+    "null_count": {
+      "enabled": true,
+      "column": "account_id",
+      "frequency": "DAILY",
+      "max_allowed_nulls": 0
+    },
+
+    "run_comparison": {
+      "enabled": true,
+      "compare_with": "previous_successful_run",
+      "max_delta_percent": 3
+    }
+  }
+}
 
 ---
 
