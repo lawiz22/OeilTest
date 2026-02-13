@@ -1,0 +1,65 @@
+{
+    "name": "PL_Bronze_Event_Master",
+    "properties": {
+        "activities": [
+            {
+                "name": "PL_Main",
+                "type": "ExecutePipeline",
+                "dependsOn": [],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PL_Bronze_To_Standardized_Parquet",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "p_table": {
+                            "value": "@split(pipeline().parameters.p_folderPath,'/')[2]",
+                            "type": "Expression"
+                        },
+                        "p_period": {
+                            "value": "@replace(split(pipeline().parameters.p_folderPath,'/')[3],'period=','')",
+                            "type": "Expression"
+                        },
+                        "p_year": {
+                            "value": "@replace(split(pipeline().parameters.p_folderPath,'/')[4],'year=','')",
+                            "type": "Expression"
+                        },
+                        "p_month": {
+                            "value": "@replace(split(pipeline().parameters.p_folderPath,'/')[5],'month=','')",
+                            "type": "Expression"
+                        },
+                        "p_day": {
+                            "value": "@replace(split(pipeline().parameters.p_folderPath,'/')[6],'day=','')",
+                            "type": "Expression"
+                        },
+                        "p_ctrl_id": {
+                            "value": "@concat(split(pipeline().parameters.p_folderPath,'/')[2],'_',replace(split(pipeline().parameters.p_folderPath,'/')[4],'year=',''),'-',replace(split(pipeline().parameters.p_folderPath,'/')[5],'month=',''),'-',replace(split(pipeline().parameters.p_folderPath,'/')[6],'day=',''),'_',replace(split(pipeline().parameters.p_folderPath,'/')[3],'period=',''))\n",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "p_folderPath": {
+                "type": "string",
+                "defaultValue": "@triggerBody().folderPath"
+            },
+            "p_fileName": {
+                "type": "string",
+                "defaultValue": "@triggerBody().fileName"
+            },
+            "p_ctrl_id": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-02-09T00:27:36Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -93,13 +93,15 @@ OeilTest/
 │       ├── SP_Compute_SLA_SYNAPSE.sql # SLA Synapse (overhead fixe)
 │       └── SP_Compute_SLA_Vigie.sql   # SLA global par dataset (futur)
 ├── adf/                           # Pipeline JSON ADF
+│   └── PL_Bronze_Event_Master.json # Event-driven Bronze ingestion
 ├── config/
 │   ├── dataset_schedule.json      # Schedule par dataset
 │   └── sample_ctrl.json           # Exemple fichier CTRL v2
 ├── azcopy_uploader.py             # Upload Bronze → ADLS
 ├── docs/
-│   └── screenshots/                # Captures d'écran (Power BI, etc.)
-│       └── powerbi_dashboard_main.png
+│   └── screenshots/                # Captures d'écran
+│       ├── powerbi_dashboard_main.png
+│       └── adf_pl_bronze_event_master.png
 ├── requirements.txt
 └── README.md
 ```
@@ -507,6 +509,40 @@ sla_threshold = sla_expected × (1 + tolerance_pct)
 - Écrit dans les champs `sla_*` globaux
 - Raisons descriptives : `OK_WITHIN_THRESHOLD` / `EXCEEDED_THRESHOLD`
 - Erreurs : `NO_ADF_METRICS`, `NO_SLA_PROFILE`
+
+---
+
+## 🚀 Pipelines ADF
+
+### `PL_Bronze_Event_Master` — Pipeline event-driven d'ingestion Bronze
+
+![PL_Bronze_Event_Master — Pipeline ADF déclenché par événement blob, parse le folder path et délègue à PL_Bronze_To_Standardized_Parquet](docs/screenshots/adf_pl_bronze_event_master.png)
+
+**Rôle** : Point d'entrée event-driven déclenché automatiquement lors de l'arrivée d'un fichier dans le lake Bronze. Parse le `folderPath` du blob trigger pour en extraire les métadonnées du dataset, puis délègue le traitement à `PL_Bronze_To_Standardized_Parquet`.
+
+**Paramètres :**
+
+| Paramètre | Source | Description |
+|---|---|---|
+| `p_folderPath` | `@triggerBody().folderPath` | Chemin complet du blob déclencheur |
+| `p_fileName` | `@triggerBody().fileName` | Nom du fichier déposé |
+| `p_ctrl_id` | — | Identifiant de contrôle (passé ou généré) |
+
+**Parsing du folder path** — extraction des segments :
+
+```
+folderPath : .../[2]table/[3]period=Q/[4]year=2026/[5]month=02/[6]day=08
+                  │         │              │            │           │
+                  └─ p_table └─ p_period     └─ p_year    └─ p_month  └─ p_day
+```
+
+**Génération du `ctrl_id`** :
+```
+ctrl_id = {table}_{year}-{month}-{day}_{period}
+        = accounts_2026-02-08_Q
+```
+
+> **Design** : Le pipeline ne fait aucun traitement lui-même — il décompose le chemin et délègue. C'est le pattern *event router* : le trigger blob active ce pipeline, qui parse et route vers le pipeline de transformation.
 
 ---
 
