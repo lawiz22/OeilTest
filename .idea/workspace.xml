@@ -4,40 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a7cad1cd-3d75-4acc-9ad2-d4c9cf7c0d3a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/OeilTest.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/azcopy_uploader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/create_schema.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ctrl_generator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dataset_schedule.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/extractor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fake_data_generator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/generate_fake_data.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/oeil/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/oeil/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/oeil/model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/oeil/oeil_validate.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/oeil/runner.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/oeil/test_conn_token.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/oeil/validator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ok_ctrl.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/reset_oeil_environment.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/run_extractions.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/run_sla_compute.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/run_vigie_faker.py.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/run_vigie_sla_finalize.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/schemas.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sql_writer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sqlite_schema.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vigie_faker.py" afterDir="false" />
+    <list default="true" id="a7cad1cd-3d75-4acc-9ad2-d4c9cf7c0d3a" name="Changes" comment="Initial">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,6 +26,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "lawiz22"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/lawiz22/OeilTest.git",
+    "accountId": "29586239-7696-4a6f-9eed-b837edfcb973"
+  }
+}]]></component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/generate_fake_data.py" root0="FORCE_HIGHLIGHTING" />
   </component>
@@ -189,8 +169,17 @@
       <workItem from="1769787887710" duration="106000" />
       <workItem from="1769788296944" duration="5943000" />
       <workItem from="1769797242576" duration="30544000" />
-      <workItem from="1769956585009" duration="175750000" />
+      <workItem from="1769956585009" duration="177686000" />
     </task>
+    <task id="LOCAL-00001" summary="Initial">
+      <option name="closed" value="true" />
+      <created>1770990253318</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1770990253318</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -206,6 +195,10 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Initial" />
+    <option name="LAST_COMMIT_MESSAGE" value="Initial" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

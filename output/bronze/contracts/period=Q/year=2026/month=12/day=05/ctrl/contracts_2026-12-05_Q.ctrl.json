@@ -1,0 +1,21 @@
+{
+  "ctrl_id": "contracts_2026-12-05_Q",
+  "dataset": "contracts",
+  "periodicity": "Q",
+  "extraction_date": "2026-12-05",
+  "expected_rows": 12,
+  "actual_rows": 12,
+  "variance_applied": false,
+  "variance_delta": 0,
+  "payload_canonical": "contracts|Q|2026-12-05|12",
+  "payload_hash_sha256": "3e96edcac1f8443a0a774f9c9f9f34ace732e9ac26029a410675bf15e9d409e4",
+  "payload_hash_version": 1,
+  "source_system": "LEGACY_DS",
+  "created_ts": "2026-02-10T02:03:06.515771",
+  "pipeline_name": null,
+  "trigger_name": null,
+  "pipeline_run_id": null,
+  "status": "CREATED",
+  "start_ts": null,
+  "end_ts": null
+}

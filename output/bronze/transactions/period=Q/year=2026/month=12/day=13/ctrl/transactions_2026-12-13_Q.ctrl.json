@@ -1,0 +1,21 @@
+{
+  "ctrl_id": "transactions_2026-12-13_Q",
+  "dataset": "transactions",
+  "periodicity": "Q",
+  "extraction_date": "2026-12-13",
+  "expected_rows": 170,
+  "actual_rows": 137,
+  "variance_applied": true,
+  "variance_delta": 33,
+  "payload_canonical": "transactions|Q|2026-12-13|170",
+  "payload_hash_sha256": "6fd690285df36f03db5cbad94c74eb242eeeb28ee62a6f7742de245619a23f02",
+  "payload_hash_version": 1,
+  "source_system": "LEGACY_DS",
+  "created_ts": "2026-02-09T18:52:46.561530",
+  "pipeline_name": null,
+  "trigger_name": null,
+  "pipeline_run_id": null,
+  "status": "CREATED",
+  "start_ts": null,
+  "end_ts": null
+}

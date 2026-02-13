@@ -1,0 +1,21 @@
+{
+  "ctrl_id": "clients_2026-12-02_Q",
+  "dataset": "clients",
+  "periodicity": "Q",
+  "extraction_date": "2026-12-02",
+  "expected_rows": 829,
+  "actual_rows": 770,
+  "variance_applied": true,
+  "variance_delta": 59,
+  "payload_canonical": "clients|Q|2026-12-02|829",
+  "payload_hash_sha256": "ffc43a2681022e195669b4f9a59238f4f9318d743edb31402fadef3cf9bed004",
+  "payload_hash_version": 1,
+  "source_system": "LEGACY_DS",
+  "created_ts": "2026-02-10T01:44:01.948096",
+  "pipeline_name": null,
+  "trigger_name": null,
+  "pipeline_run_id": null,
+  "status": "CREATED",
+  "start_ts": null,
+  "end_ts": null
+}
