@@ -63,6 +63,10 @@ OeilTest/
 │   │   ├── vigie_policy_table.sql # Policy par dataset (v2)
 │   │   ├── vigie_policy_test.sql  # Tests par policy (v2)
 │   │   ├── vigie_integrity_result.sql # Résultats intégrité (v2)
+│   │   ├── ctrl_file_index.sql    # Index fichiers ingérés (re-runs)
+│   │   ├── sla_profile.sql        # Profil SLA par dataset (futur)
+│   │   ├── sla_profile_execution_type.sql # Profil SLA par type exec (actif)
+│   │   ├── synapse_rowcount_cache.sql # Cache row count Synapse (tampon)
 │   │   ├── clients.sql
 │   │   ├── accounts.sql
 │   │   ├── transactions.sql
@@ -240,6 +244,138 @@ python -m python.runners.reset_oeil_environment
 | `dbo.vigie_policy_table`     | Policy de gouvernance par dataset     |
 | `dbo.vigie_policy_test`      | Tests activés par type et fréquence   |
 | `dbo.vigie_integrity_result` | Résultats détaillés d'intégrité       |
+| `dbo.ctrl_file_index`        | Index des fichiers ingérés (re-runs)  |
+| `dbo.sla_profile`            | Profil SLA par dataset (feature future) |
+| `dbo.sla_profile_execution_type` | Profil SLA par type d'exécution (actif) |
+| `dbo.synapse_rowcount_cache`     | Cache row count Synapse (table tampon)  |
+
+### 👁️ `vigie_ctrl` — Table principale (run-level metrics)
+
+Un enregistrement par run d'extraction. Contient toutes les métriques de volume, SLA, coûts et alertes.
+
+**Identité du run :**
+
+| Colonne | Type | Rôle |
+|---|---|---|
+| `ctrl_id` | varchar(200) | **PK** — identifiant unique du run |
+| `dataset` | varchar(50) | Nom du dataset |
+| `periodicity` | varchar(10) | Fréquence (D/W/M/Q) |
+| `extraction_date` | date | Date d'extraction |
+| `expected_rows` | int | Lignes attendues |
+| `source_system` | varchar(50) | Système source |
+| `created_ts` | datetime2(7) | Timestamp de création |
+| `pipeline_run_id` | varchar(100) | ID du pipeline ADF |
+| `adf_pipeline_name` | varchar(100) | Nom du pipeline ADF |
+| `adf_trigger_name` | varchar(100) | Nom du trigger ADF |
+| `start_ts` / `end_ts` | datetime2(7) | Début / fin du run |
+| `duration_sec` | int | Durée totale (sec) |
+| `status` | varchar(20) | Statut du run |
+| `status_global` | varchar(20) | Statut agrégé global |
+| `inserted_ts` | datetime2(7) | Auto : date d'insertion (UTC) |
+
+**Volume (Bronze / Parquet) :**
+
+| Colonne | Type | Rôle |
+|---|---|---|
+| `bronze_rows` / `parquet_rows` | int | Row count par couche |
+| `bronze_delta` / `parquet_delta` | int | Delta vs expected |
+| `bronze_status` / `parquet_status` | varchar | OK / LOW / ANOMALY |
+| `volume_status` | varchar(20) | Statut volume agrégé |
+| `row_count_adf_ingestion_copie_parquet` | int | Rows copiées par ADF vers parquet |
+
+**SLA par moteur :**
+
+| Préfixe | Colonnes | Description |
+|---|---|---|
+| `sla_*` | `sla_sec`, `sla_expected_sec`, `sla_threshold_sec`, `sla_status`, `sla_reason`, `sla_bucket` | SLA global |
+| `oeil_sla_*` | `oeil_sla_sec`, `oeil_sla_expected_sec`, `oeil_sla_threshold_sec`, `oeil_sla_status`, `oeil_sla_reason` | SLA L'ŒIL |
+| `adf_sla_*` | `adf_sla_sec`, `adf_sla_expected_sec`, `adf_sla_threshold_sec`, `adf_sla_status`, `adf_sla_reason` | SLA ADF |
+| `synapse_sla_*` | `synapse_sla_sec`, `synapse_sla_expected_sec`, `synapse_sla_threshold_sec`, `synapse_sla_status`, `synapse_sla_reason` | SLA Synapse |
+
+**Alertes & Coûts :**
+
+| Colonne | Type | Rôle |
+|---|---|---|
+| `alert_flag` | bit | Alerte déclenchée ? |
+| `alert_level` | varchar(20) | NO_ALERT / INFO / WARNING / CRITICAL |
+| `alert_reason` | varchar(100) | Raison de l'alerte |
+| `alert_ts` | datetime2(7) | Timestamp de l'alerte |
+| `synapse_cost_estimated_cad` | decimal(10,6) | Coût estimé Synapse (CAD) |
+| `synapse_cost_rate_cad_per_min` | decimal(10,6) | Taux $/min Synapse |
+
+**Intégrité payload :**
+
+| Colonne | Type | Rôle |
+|---|---|---|
+| `payload_canonical` | varchar(500) | Forme canonique du payload |
+| `payload_hash_sha256` | char(64) | Hash SHA-256 déterministique |
+| `payload_hash_version` | tinyint | Version de l'algorithme de hash |
+| `payload_hash_match` | bit | Hash correspond ? |
+
+> **Index** : `IX_vigie_ctrl_dataset_date` sur (`dataset`, `periodicity`, `extraction_date`) pour les lookups rapides.
+
+### 📂 `ctrl_file_index` — Index des fichiers ingérés
+
+Insérée lors de l'upload réussi d'un fichier sur le lake bronze. Essentielle pour les re-runs.
+
+| Colonne | Type | Rôle |
+|---|---|---|
+| `ctrl_id` | nvarchar(200) | **PK** — identifiant unique du contrôle |
+| `dataset` | nvarchar(200) | Nom du dataset |
+| `ctrl_path` | nvarchar(1024) | Chemin logique complet du fichier |
+| `processed_flag` | bit | Re-run : `0` = à traiter, `1` = déjà traité |
+| `processed_ts` | datetime2(3) | Timestamp du traitement |
+| `created_ts` | datetime2(3) | Auto : date de création (UTC) |
+| `ctrl_path_hash` | binary(32) | **Computed + Unique Index** — SHA-256 du chemin (dédoublonnage) |
+
+### 📈 `sla_profile` — Profil SLA par dataset (feature future)
+
+Calcul de SLA de base par dataset : `SLA = base_overhead_sec + (rows / 1000) × sec_per_1k_rows` avec marge de tolérance.
+
+| Colonne | Type | Rôle |
+|---|---|---|
+| `dataset` | nvarchar(200) | **PK** — un profil SLA par dataset |
+| `base_overhead_sec` | int | Overhead fixe de base (secondes) |
+| `sec_per_1k_rows` | int | Coût variable par tranche de 1K lignes |
+| `tolerance_pct` | decimal(5,2) | Tolérance en % avant alerte SLA |
+| `active_flag` | bit | Actif/inactif (default `1`) |
+| `created_ts` | datetime2(3) | Auto : date de création (UTC) |
+
+### ⚡ `sla_profile_execution_type` — Profil SLA par type d'exécution (actif)
+
+Version en production — profils SLA par type d'exécution (ADF / SYNAPSE / OEIL).
+
+| Colonne | Type | Rôle |
+|---|---|---|
+| `execution_type` | varchar(30) | **PK** — type d'exécution |
+| `base_overhead_sec` | int | Overhead fixe (secondes) |
+| `sec_per_1k_rows` | int (nullable) | Coût variable par 1K lignes |
+| `tolerance_pct` | decimal(5,2) | Tolérance en % |
+| `active_flag` | bit | Actif (default `1`) |
+| `created_ts` | datetime2(3) | Date de création (UTC) |
+
+**Données de base :**
+
+| execution_type | overhead | /1K rows | tolérance |
+|---|---|---|---|
+| **ADF** | 30s | 5s | 25% |
+| **OEIL** | 360s (6 min) | — | 22% |
+| **SYNAPSE** | 120s (2 min) | — | 30% |
+
+### 🗄️ `synapse_rowcount_cache` — Cache row count Synapse
+
+Table tampon pour éviter les requêtes Synapse coûteuses et répétitives. Stocke les row counts par dataset/periodicité/date/layer. Première ébauche fonctionnelle — la logique d'agrégation complète reste à programmer.
+
+| Colonne | Type | Rôle |
+|---|---|---|
+| `dataset` | varchar(50) | **PK (1/4)** — nom du dataset |
+| `periodicity` | varchar(10) | **PK (2/4)** — fréquence (D/W/M/Q) |
+| `extraction_date` | date | **PK (3/4)** — date d'extraction |
+| `layer` | varchar(10) | **PK (4/4)** — couche (bronze/silver/gold) |
+| `row_count` | int | Nombre de lignes comptées |
+| `computed_ts` | datetime2(7) | Auto : timestamp du calcul (UTC) |
+
+> **Design** : PK composite à 4 colonnes = un row count unique par combinaison dataset + periodicité + date + layer. Pas de surrogate key — la clé naturelle suffit pour le cache.
 
 ---
 

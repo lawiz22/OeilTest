@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a7cad1cd-3d75-4acc-9ad2-d4c9cf7c0d3a" name="Changes" comment="Initial">
-      <change afterPath="$PROJECT_DIR$/.agent/workflows/run-python.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/run_extractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_extractions.py" afterDir="false" />
-    </list>
+    <list default="true" id="a7cad1cd-3d75-4acc-9ad2-d4c9cf7c0d3a" name="Changes" comment="Initial" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -174,7 +169,7 @@
       <workItem from="1769788296944" duration="5943000" />
       <workItem from="1769797242576" duration="30544000" />
       <workItem from="1769956585009" duration="178383000" />
-      <workItem from="1770999943237" duration="1548000" />
+      <workItem from="1770999943237" duration="2145000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <option name="closed" value="true" />
