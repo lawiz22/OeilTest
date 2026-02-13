@@ -15,6 +15,6 @@ __pycache__/vigie_faker.cpython-312.pyc
 oeil/azcopy.exe
 oeil/oeil_result.json
 oeil/test_conn.py
-output/*.*
+output/
 .idea/vcs.xml
 .idea/workspace.xml
