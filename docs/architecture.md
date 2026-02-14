@@ -8,7 +8,7 @@ L'ŒIL est conçu comme un **framework de contrôle** qui orchestre la qualité 
 graph TD
     subgraph Data Factory
     ADF[Azure Data Factory] -->|Ingestion & Orchestration| ADLS[ADLS Gen2]
-    ADF -->|Logging & SLA| SQL[Azure SQL (vigie_ctrl)]
+    ADF -->|Logging & SLA| SQL["Azure SQL (vigie_ctrl)"]
     end
 
     subgraph Storage & Compute
