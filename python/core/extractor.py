@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 import random
 import sqlite3
 import pyodbc
@@ -29,6 +30,21 @@ VARIANCE_MAX_PCT = 0
 # HASH CONFIG (L’ŒIL — OFFICIEL)
 # =====================================================
 HASH_VERSION = 1
+
+# =====================================================
+# CTRL INDEX WRITE MODE
+# =====================================================
+# required   : fail run if Azure SQL ctrl index insert fails
+# best_effort: warn and continue if insert fails
+# disabled   : skip ctrl index insert
+CTRL_INDEX_MODE_ENV = "OEIL_CTRL_INDEX_MODE"
+
+
+def get_ctrl_index_mode():
+    mode = os.getenv(CTRL_INDEX_MODE_ENV, "required").strip().lower()
+    if mode not in {"required", "best_effort", "disabled"}:
+        return "required"
+    return mode
 
 # =====================================================
 # SQLITE HELPERS
@@ -353,11 +369,22 @@ def extract_dataset(
         f"ctrl/{ctrl_file.name}"
     )
 
-    insert_ctrl_index_sql(
-        ctrl_id=ctrl["ctrl_id"],
-        dataset=table,
-        ctrl_path=ctrl_path
-    )
+    ctrl_index_mode = get_ctrl_index_mode()
+
+    if ctrl_index_mode == "disabled":
+        print("[INFO] CTRL index insert skipped (OEIL_CTRL_INDEX_MODE=disabled)")
+    else:
+        try:
+            insert_ctrl_index_sql(
+                ctrl_id=ctrl["ctrl_id"],
+                dataset=table,
+                ctrl_path=ctrl_path
+            )
+        except pyodbc.Error as exc:
+            if ctrl_index_mode == "best_effort":
+                print(f"[WARN] CTRL index insert failed (best_effort): {exc}")
+            else:
+                raise
 
     print(
         f"[OK] {table} | {date_str} | {period} | "
