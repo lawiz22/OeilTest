@@ -60,10 +60,10 @@ def main():
     current = start
     total = 0
 
-    print("🔥 START VIGIE FAKE GENERATION")
-    print(f"📆 {START_DATE} → {END_DATE}")
-    print(f"📊 DATASETS = {DATASETS}")
-    print(f"🧨 CHAOS = {CHAOS_LEVEL}")
+    print("[START] VIGIE FAKE GENERATION")
+    print(f"DATES: {START_DATE} -> {END_DATE}")
+    print(f"DATASETS = {DATASETS}")
+    print(f"CHAOS = {CHAOS_LEVEL}")
     print("-" * 60)
 
     while current <= end:
@@ -86,7 +86,7 @@ def main():
         current += timedelta(days=1)
 
     print("-" * 60)
-    print(f"✅ DONE — {total} runs generated")
+    print(f"[OK] DONE - {total} runs generated")
 
 # =====================================================
 # ENTRY POINT

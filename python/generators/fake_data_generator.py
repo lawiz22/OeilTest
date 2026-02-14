@@ -29,8 +29,10 @@ def generate_clients(n):
             "client_id": fake.random_int(100000, 999999),
             "nom": fake.last_name(),
             "prenom": fake.first_name(),
-            "pays": fake.country_code(),
-            "date_eff": fake.date_this_decade()
+            "client_type": random.choice(["PERSONNEL", "BUSINESS"]),
+            "pays": fake.country(),
+            "statut": random.choice(["ACTIF", "FERME"]),
+            "date_effet": fake.date_this_decade()
         }
 
 
@@ -75,7 +77,7 @@ def main():
             with open(filepath, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(
                     f,
-                    fieldnames=["client_id", "nom", "prenom", "pays", "date_eff"]
+                    fieldnames=["client_id", "nom", "prenom", "client_type", "pays", "statut", "date_effet"]
                 )
                 writer.writeheader()
                 for row in generate_clients(rows):

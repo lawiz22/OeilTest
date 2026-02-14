@@ -23,7 +23,7 @@ CONFIG = {
     "tables": ["clients"],
 
     "start_date": "2025-12-01",
-    "end_date": "2025-12-30",
+    "end_date": "2025-12-01",
 
     # ============================
     # VOLUME CONFIG
@@ -47,7 +47,7 @@ CONFIG = {
     # ============================
     # PERIODICITY
     # ============================
-    "period": "H",
+    "period": "Q",
     "qs_days": [1, 2, 3, 4, 5, 6, 7],
     "weekly_day": 6
 }

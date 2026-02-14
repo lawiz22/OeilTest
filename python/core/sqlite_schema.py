@@ -9,8 +9,10 @@ SCHEMA_SQL = {
             client_id INTEGER,
             nom TEXT,
             prenom TEXT,
+            client_type TEXT,
             pays TEXT,
-            date_eff TEXT
+            statut TEXT,
+            date_effet TEXT
         );
     """,
     "accounts": """
@@ -19,26 +21,28 @@ SCHEMA_SQL = {
             client_id INTEGER,
             account_type TEXT,
             currency TEXT,
-            date_eff TEXT
+            balance REAL,
+            open_date TEXT
         );
     """,
     "transactions": """
         CREATE TABLE IF NOT EXISTS transactions (
             transaction_id INTEGER,
-            client_id INTEGER,
             account_id INTEGER,
             amount REAL,
             currency TEXT,
-            transaction_ts TEXT
+            transaction_ts TEXT,
+            ingestion_date TEXT
         );
     """,
     "contracts": """
         CREATE TABLE IF NOT EXISTS contracts (
             contract_id INTEGER,
             client_id INTEGER,
-            contract_type TEXT,
-            status TEXT,
-            date_eff TEXT
+            product_type TEXT,
+            start_date TEXT,
+            end_date TEXT,
+            statut TEXT
         );
     """
 }
@@ -53,4 +57,4 @@ def ensure_schema():
     conn.commit()
     conn.close()
 
-    print(f"✅ SQLite schema ensured at {DB_PATH}")
+    print(f"[OK] SQLite schema ensured at {DB_PATH}")

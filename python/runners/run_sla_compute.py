@@ -39,11 +39,11 @@ def main():
     ctrl_ids = fetch_ctrl_ids_without_sla(cur)
 
     if not ctrl_ids:
-        print("✅ Aucun SLA à calculer.")
+        print("[OK] Aucun SLA a calculer.")
         conn.close()
         return
 
-    print(f"🔥 {len(ctrl_ids)} runs à enrichir avec SLA")
+    print(f"[START] {len(ctrl_ids)} runs a enrichir avec SLA")
     print("-" * 50)
 
     success = 0
@@ -53,17 +53,17 @@ def main():
         try:
             compute_sla_for_ctrl(cur, ctrl_id)
             success += 1
-            print(f"✅ SLA calculé → {ctrl_id}")
+            print(f"[OK] SLA calcule -> {ctrl_id}")
         except Exception as e:
             failed += 1
-            print(f"❌ ERREUR SLA → {ctrl_id}")
+            print(f"[ERROR] ERREUR SLA -> {ctrl_id}")
             print(str(e))
 
     conn.commit()
     conn.close()
 
     print("-" * 50)
-    print(f"🍖 SLA DONE — OK={success} | FAIL={failed}")
+    print(f"SLA DONE - OK={success} | FAIL={failed}")
 
 if __name__ == "__main__":
     main()

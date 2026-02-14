@@ -241,12 +241,12 @@ def main():
     ctrl_ids = fetch_ctrl_ids_to_finalize(cur)
 
     if not ctrl_ids:
-        print("✅ Aucun run à finaliser.")
+        print("[OK] Aucun run a finaliser.")
         conn.close()
         return
 
-    print("🔥 VIGIE FINALIZER")
-    print(f"📦 Runs à traiter : {len(ctrl_ids)}")
+    print("[START] VIGIE FINALIZER")
+    print(f"Runs a traiter : {len(ctrl_ids)}")
     print("-" * 60)
 
     ok = 0
@@ -263,18 +263,18 @@ def main():
             mark_completed(cur, ctrl_id)
 
             ok += 1
-            print(f"✅ COMPLETED → {ctrl_id}")
+            print(f"[OK] COMPLETED -> {ctrl_id}")
 
         except Exception as e:
             fail += 1
-            print(f"❌ ERREUR → {ctrl_id}")
+            print(f"[ERROR] ERREUR -> {ctrl_id}")
             print(str(e))
 
     conn.commit()
     conn.close()
 
     print("-" * 60)
-    print(f"🍖 DONE — OK={ok} | FAIL={fail}")
+    print(f"DONE - OK={ok} | FAIL={fail}")
 
 # =====================================================
 # ENTRY POINT

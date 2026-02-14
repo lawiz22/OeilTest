@@ -5,6 +5,8 @@
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'clients')
 CREATE TABLE dbo.clients (
     client_id       INT,
+    nom             VARCHAR(120),
+    prenom          VARCHAR(120),
     client_type     VARCHAR(20),
     pays            VARCHAR(50),
     statut          VARCHAR(20),

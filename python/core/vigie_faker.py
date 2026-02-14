@@ -226,4 +226,4 @@ def write_fake_vigie_run(
     conn.commit()
     conn.close()
 
-    print(f"🔥 {ctrl_id} | bucket={sla_bucket} | alert={alert_level}")
+    print(f"[RUN] {ctrl_id} | bucket={sla_bucket} | alert={alert_level}")
