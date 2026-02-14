@@ -14,4 +14,5 @@ output/
 .env.local
 .env.*
 !.env.example
-config/run_extractions.json
+config/run_extractions*.json
+!config/run_extractions.example.json

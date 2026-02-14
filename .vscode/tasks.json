@@ -1,0 +1,56 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Extractions (local config)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv2\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "python.runners.run_extractions"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Extractions (example config)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv2\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "python.runners.run_extractions",
+        "--config",
+        "config/run_extractions.example.json"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Reset Oeil Environment",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv2\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "python.runners.reset_oeil_environment"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
