@@ -39,3 +39,34 @@ L'ŒIL a été conçu avec des contraintes spécifiques de coût, traçabilité 
 *   **Audit Trail** : Même si la DB SQL est purgée ou corrompue, l'historique des runs est préservé dans le lac.
 *   **Non-Répudiation** : Le hash SHA-256 du payload garantit que le résultat du contrôle n'a pas été modifié.
 *   **Découplage** : Les consommateurs en aval peuvent lire le fichier `.done` et le `CTRL` associé sans toucher à la DB SQL.
+
+## 5. Philosophie : Observabilité vs Blocage
+
+> **"L'ŒIL ne doit pas être un moteur qui bloque, mais un moteur qui révèle."**
+
+Le but fondamental du framework n'est pas d'arrêter les pipelines au moindre écart (ce qui paralyse le business), mais de fournir une visibilité totale sur la qualité.
+
+Il doit :
+1.  **Détecter** l'anomalie.
+2.  **Classifier** sa sévérité.
+3.  **Alerter** les bonnes personnes.
+4.  **Mesurer** l'impact et la tendance.
+5.  **Ne pas interférer** avec le flux de données critique, sauf en cas de corruption avérée.
+
+## 6. Stratégie Environnementale (DEV vs PROD)
+
+Le comportement du framework doit s'adapter au cycle de vie du développement.
+
+### En DEV : "Fail Fast, Watch Closely"
+*   **Validation stricte** : On veut casser le pipeline si la donnée n'est pas parfaite.
+*   **Fréquence élevée** : Tests systématiques à chaque run.
+*   **Checksum fréquent** : Validation de contenu agressive pour détecter les régressions de code.
+*   **Monitoring agressif** : Le développeur doit voir immédiatement l'impact de ses changements.
+*   **Observation des coûts** : Mesure précise de l'impact financier des nouvelles transformations.
+
+### En PROD : "Business Continuity & Efficiency"
+*   **Tests essentiels seulement** : On ne valide que ce qui protège le business.
+*   **Fréquence optimisée** : Checksums lourds uniquement hebdomadaires ou mensuels.
+*   **Compute contrôlé** : Usage de Synapse restreint pour maîtriser la facture cloud.
+*   **Pas d’effet sur la performance métier** : Les contrôles ne doivent pas retarder la mise à disposition des données.
+*   **Policy adaptée** : Les seuils sont ajustés selon le comportement réel observé ("drift" naturel accepté si non critique).
