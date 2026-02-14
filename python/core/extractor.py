@@ -14,7 +14,7 @@ from faker import Faker
 fake = Faker("fr_CA")
 
 BASE_BRONZE = Path("output/bronze")
-SQLITE_DB = Path("oeil.db")
+SQLITE_DB = Path(__file__).resolve().parents[2] / "oeil.db"
 
 # =====================================================
 # VARIANCE (CTRL MISMATCH)

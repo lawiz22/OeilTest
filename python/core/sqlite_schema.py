@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent / "oeil.db"
+DB_PATH = Path(__file__).resolve().parents[2] / "oeil.db"
 
 SCHEMA_SQL = {
     "clients": """
