@@ -1,14 +1,5 @@
 import pyodbc
-
-AZURE_SQL_CONN_STR = (
-    "Driver={ODBC Driver 18 for SQL Server};"
-    "Server=tcp:testbanque.database.windows.net,1433;"
-    "Database=testbanque;"
-    "Uid=oeil_ctrl_login;"
-    "Pwd=Mabellefee!2222;"
-    "Encrypt=yes;"
-    "TrustServerCertificate=no;"
-)
+from python.core.db_config import get_azure_sql_conn_str
 
 SLA_PROC_NAME = "dbo.SP_Compute_SLA_Vigie"
 
@@ -33,7 +24,7 @@ def compute_sla_for_ctrl(cur, ctrl_id):
     )
 
 def main():
-    conn = pyodbc.connect(AZURE_SQL_CONN_STR)
+    conn = pyodbc.connect(get_azure_sql_conn_str())
     cur = conn.cursor()
 
     ctrl_ids = fetch_ctrl_ids_without_sla(cur)

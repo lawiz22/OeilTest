@@ -49,6 +49,14 @@ python -m venv .venv2
 pip install -r requirements.txt
 ```
 
+### Variables d'environnement (Azure SQL)
+```bash
+# PowerShell (session courante)
+$env:OEIL_AZURE_SQL_PASSWORD="YOUR_PASSWORD_HERE"
+```
+
+Ou copie [.env.example](.env.example) vers `.env` puis remplace les valeurs.
+
 ### Exécuter une simulation
 ```bash
 python -m python.runners.run_extractions

@@ -8,6 +8,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from faker import Faker
 
+from python.core.db_config import get_azure_sql_conn_str
+
 # =====================================================
 # GLOBAL CONFIG
 # =====================================================
@@ -27,19 +29,6 @@ VARIANCE_MAX_PCT = 0.22
 # HASH CONFIG (L’ŒIL — OFFICIEL)
 # =====================================================
 HASH_VERSION = 1
-
-# =====================================================
-# AZURE SQL CONFIG (CTRL INDEX)
-# =====================================================
-AZURE_SQL_CONN_STR = (
-    "Driver={ODBC Driver 18 for SQL Server};"
-    "Server=tcp:testbanque.database.windows.net,1433;"
-    "Database=testbanque;"
-    "Uid=oeil_ctrl_login;"
-    "Pwd=Mabellefee!2222;"
-    "Encrypt=yes;"
-    "TrustServerCertificate=no;"
-)
 
 # =====================================================
 # SQLITE HELPERS
@@ -68,7 +57,7 @@ def insert_rows_sqlite(table, rows):
 # AZURE SQL CTRL INDEX
 # =====================================================
 def insert_ctrl_index_sql(ctrl_id, dataset, ctrl_path):
-    conn = pyodbc.connect(AZURE_SQL_CONN_STR)
+    conn = pyodbc.connect(get_azure_sql_conn_str())
     cur = conn.cursor()
 
     cur.execute("""

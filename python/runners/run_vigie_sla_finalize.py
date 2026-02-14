@@ -17,20 +17,7 @@ Usage :
 """
 
 import pyodbc
-
-# =====================================================
-# 🔐 CONNEXION SQL
-# =====================================================
-
-AZURE_SQL_CONN_STR = (
-    "Driver={ODBC Driver 18 for SQL Server};"
-    "Server=tcp:testbanque.database.windows.net,1433;"
-    "Database=testbanque;"
-    "Uid=oeil_ctrl_login;"
-    "Pwd=Mabellefee!2222;"
-    "Encrypt=yes;"
-    "TrustServerCertificate=no;"
-)
+from python.core.db_config import get_azure_sql_conn_str
 
 # =====================================================
 # ⚙️ STORED PROCEDURES SLA
@@ -235,7 +222,7 @@ def mark_completed(cur, ctrl_id):
 # =====================================================
 
 def main():
-    conn = pyodbc.connect(AZURE_SQL_CONN_STR)
+    conn = pyodbc.connect(get_azure_sql_conn_str())
     cur = conn.cursor()
 
     ctrl_ids = fetch_ctrl_ids_to_finalize(cur)
