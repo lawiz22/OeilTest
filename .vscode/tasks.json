@@ -51,6 +51,36 @@
         "clear": true
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Run SLA Compute",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv2\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "python.runners.run_sla_compute"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Vigie SLA Finalize",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv2\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "python.runners.run_vigie_sla_finalize"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
     }
   ]
 }

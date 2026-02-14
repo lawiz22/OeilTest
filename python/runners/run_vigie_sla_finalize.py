@@ -16,6 +16,15 @@ Usage :
 =====================================================
 """
 
+import sys
+from pathlib import Path
+
+# Ensure project root is on sys.path so "python.core.*" imports work
+# when running this file directly (e.g. VS Code Run button)
+_project_root = str(Path(__file__).resolve().parents[2])
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
 import pyodbc
 from python.core.db_config import get_azure_sql_conn_str
 
