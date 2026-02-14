@@ -57,6 +57,18 @@ $env:OEIL_AZURE_SQL_PASSWORD="YOUR_PASSWORD_HERE"
 
 Ou copie [.env.example](.env.example) vers `.env` puis remplace les valeurs.
 
+### Configuration run_extractions
+```bash
+# Créer une config locale (non versionnée)
+copy config\run_extractions.example.json config\run_extractions.json
+
+# Exécuter avec config locale
+python -m python.runners.run_extractions
+
+# Ou exécuter avec un fichier explicite
+python -m python.runners.run_extractions --config config\run_extractions.example.json
+```
+
 ### Exécuter une simulation
 ```bash
 python -m python.runners.run_extractions

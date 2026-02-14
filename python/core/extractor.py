@@ -21,9 +21,9 @@ SQLITE_DB = Path(__file__).resolve().parents[2] / "oeil.db"
 # =====================================================
 # VARIANCE (CTRL MISMATCH)
 # =====================================================
-VARIANCE_MODE = "RANDOM"
+VARIANCE_MODE = "NONE"
 VARIANCE_CHANCE = 0
-VARIANCE_MAX_PCT = 0.22
+VARIANCE_MAX_PCT = 0
 
 # =====================================================
 # HASH CONFIG (L’ŒIL — OFFICIEL)

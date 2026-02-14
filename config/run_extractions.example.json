@@ -1,0 +1,15 @@
+{
+  "tables": ["clients"],
+  "start_date": "2026-02-01",
+  "end_date": "2026-02-01",
+  "row_mode": "FIXED",
+  "rows_fixed": 100,
+  "rows_random_min": 700,
+  "rows_random_max": 1664,
+  "variance_mode": "RANDOM",
+  "variance_chance": 0.23,
+  "variance_max_pct": 0.1,
+  "period": "Q",
+  "qs_days": [1, 2, 3, 4, 5, 6, 7],
+  "weekly_day": 6
+}
