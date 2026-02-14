@@ -1,7 +1,7 @@
 {
   "tables": ["clients"],
-  "start_date": "2026-02-01",
-  "end_date": "2026-02-01",
+  "start_date": "2026-02-04",
+  "end_date": "2026-02-04",
   "row_mode": "FIXED",
   "rows_fixed": 100,
   "rows_random_min": 700,
