@@ -1,8 +1,20 @@
+import sys
+from pathlib import Path
+
+# Ensure project root is on sys.path so "python.core.*" imports work
+# when running this file directly (e.g. PyCharm Run button)
+_project_root = str(Path(__file__).resolve().parents[2])
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
 from datetime import datetime, timedelta
 import random
 
+# Import du module extractor complet pour pouvoir modifier la variance globale
+import python.core.extractor as extractor
 from python.core.extractor import extract_dataset
 from python.core.sqlite_schema import ensure_schema
+
 
 # =====================================================
 # GLOBAL CONFIG
@@ -10,8 +22,8 @@ from python.core.sqlite_schema import ensure_schema
 CONFIG = {
     "tables": ["clients"],
 
-    "start_date": "2026-12-01",
-    "end_date": "2026-12-30",
+    "start_date": "2025-12-01",
+    "end_date": "2025-12-30",
 
     # ============================
     # VOLUME CONFIG
@@ -29,16 +41,17 @@ CONFIG = {
     # NONE   → expected_rows == actual_rows
     # RANDOM → expected_rows peut diverger
     "variance_mode": "RANDOM",   # NONE | RANDOM
-    "variance_chance": 0.23,      # 30% des runs auront un écart
-    "variance_max_pct": 0.10,    # ±15%
+    "variance_chance": 0.23,     # 23% des runs auront un écart
+    "variance_max_pct": 0.10,    # ±10%
 
     # ============================
     # PERIODICITY
     # ============================
     "period": "H",
-    "qs_days": [1, 2, 3, 4, 5, 6 ,7],     # Mar → Ven
-    "weekly_day": 6              # Dimanche
+    "qs_days": [1, 2, 3, 4, 5, 6, 7],
+    "weekly_day": 6
 }
+
 
 # =====================================================
 # ROW COUNT RESOLUTION
@@ -60,35 +73,21 @@ def resolve_row_count():
 
 
 # =====================================================
-# EXPECTED ROWS (CTRL VARIANCE)
-# =====================================================
-def resolve_expected_rows(actual_rows):
-    """
-    Détermine le expected_rows écrit dans le CTRL
-    Peut volontairement diverger du réel
-    """
-    if CONFIG["variance_mode"] == "NONE":
-        return actual_rows
-
-    # Pas d'écart cette fois-ci
-    if random.random() > CONFIG["variance_chance"]:
-        return actual_rows
-
-    # Appliquer un delta aléatoire
-    delta_pct = random.uniform(
-        -CONFIG["variance_max_pct"],
-        CONFIG["variance_max_pct"]
-    )
-
-    expected = int(actual_rows * (1 + delta_pct))
-    return max(expected, 0)
-
-
-# =====================================================
 # MAIN ORCHESTRATION
 # =====================================================
 def main():
     ensure_schema()
+
+    # =================================================
+    # Injecter la variance dans le module extractor
+    # =================================================
+    if CONFIG["variance_mode"] == "NONE":
+        extractor.VARIANCE_MODE = "NONE"
+        extractor.VARIANCE_CHANCE = 0
+    else:
+        extractor.VARIANCE_MODE = "RANDOM"
+        extractor.VARIANCE_CHANCE = CONFIG["variance_chance"]
+        extractor.VARIANCE_MAX_PCT = CONFIG["variance_max_pct"]
 
     start = datetime.fromisoformat(CONFIG["start_date"])
     end = datetime.fromisoformat(CONFIG["end_date"])
@@ -100,18 +99,13 @@ def main():
             # 1️⃣ Volume réel généré
             actual_rows = resolve_row_count()
 
-            # 2️⃣ Volume attendu déclaré dans le CTRL
-            expected_rows = resolve_expected_rows(actual_rows)
-
-            # 3️⃣ Extraction
+            # 2️⃣ Extraction (le CTRL calcule maintenant
+            #     expected_rows, min/max et checksum lui-même)
             extract_dataset(
                 table=table,
                 extraction_date=current,
                 period=CONFIG["period"],
-
-                # 👇 CONTRAT OFFICIEL
                 rows=actual_rows,
-
                 qs_days=CONFIG["qs_days"],
                 weekly_day=CONFIG["weekly_day"]
             )

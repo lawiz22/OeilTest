@@ -201,6 +201,21 @@ def extract_dataset(
     fields = schema["fields"]
     generator = schema["generator"]
 
+    # =================================================
+    # PRIMARY KEY COLUMN (auto-detected)
+    # =================================================
+    key_column = None
+    for f in fields:
+        if f.endswith("_id"):
+            key_column = f
+            break
+
+    if key_column is None:
+        raise ValueError(f"No *_id column found for integrity check in {table}")
+
+    # =================================================
+    # PATHS
+    # =================================================
     base_path = (
         BASE_BRONZE
         / table
@@ -221,6 +236,9 @@ def extract_dataset(
 
     generated_rows = []
 
+    # =================================================
+    # CSV GENERATION
+    # =================================================
     with open(csv_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -230,13 +248,13 @@ def extract_dataset(
 
     insert_rows_sqlite(table, generated_rows)
 
-    # =================================================
-    # VARIANCE
-    # =================================================
     actual_rows = len(generated_rows)
     expected_rows = actual_rows
     variance_applied = False
 
+    # =================================================
+    # VARIANCE (optional noise)
+    # =================================================
     if VARIANCE_MODE == "RANDOM" and random.random() < VARIANCE_CHANCE:
         sign = random.choice([-1, 1])
         delta_pct = random.uniform(0, VARIANCE_MAX_PCT)
@@ -245,7 +263,28 @@ def extract_dataset(
         variance_applied = True
 
     # =================================================
-    # CANONICAL PAYLOAD + HASH
+    # INTEGRITY CALCULATIONS
+    # =================================================
+    key_values = [row[key_column] for row in generated_rows]
+
+    if key_values:
+        min_value = min(key_values)
+        max_value = max(key_values)
+
+        # Deterministic sorted checksum
+        sorted_values = sorted(str(v) for v in key_values)
+        concat_string = "|".join(sorted_values)
+
+        checksum_sha256 = hashlib.sha256(
+            concat_string.encode("utf-8")
+        ).hexdigest()
+    else:
+        min_value = None
+        max_value = None
+        checksum_sha256 = None
+
+    # =================================================
+    # CANONICAL PAYLOAD + HASH (unchanged)
     # =================================================
     canonical_payload = f"{table}|{period}|{date_str}|{expected_rows}"
     payload_hash = hashlib.sha256(
@@ -253,7 +292,7 @@ def extract_dataset(
     ).hexdigest()
 
     # =================================================
-    # CTRL FILE
+    # CTRL JSON
     # =================================================
     ctrl = {
         "ctrl_id": f"{table}_{date_str}_{period}",
@@ -261,15 +300,40 @@ def extract_dataset(
         "periodicity": period,
         "extraction_date": date_str,
 
+        # -------------------------------
+        # Volume (existing logic intact)
+        # -------------------------------
         "expected_rows": expected_rows,
         "actual_rows": actual_rows,
         "variance_applied": variance_applied,
         "variance_delta": expected_rows - actual_rows,
 
+        # -------------------------------
+        # Integrity (NEW SECTION)
+        # -------------------------------
+        "integrity": {
+            "min_max": {
+                "column": key_column,
+                "min": min_value,
+                "max": max_value
+            },
+            "checksum": {
+                "column": key_column,
+                "algorithm": "SHA256",
+                "value": checksum_sha256
+            }
+        },
+
+        # -------------------------------
+        # Payload Hash (official)
+        # -------------------------------
         "payload_canonical": canonical_payload,
         "payload_hash_sha256": payload_hash,
         "payload_hash_version": HASH_VERSION,
 
+        # -------------------------------
+        # Metadata
+        # -------------------------------
         "source_system": source_system,
         "created_ts": datetime.utcnow().isoformat(),
 
@@ -302,5 +366,7 @@ def extract_dataset(
     print(
         f"✅ {table} | {date_str} | {period} | "
         f"actual={actual_rows} expected={expected_rows} "
-        f"{'⚠️ VARIANCE' if variance_applied else 'OK'}"
+        f"{'⚠️ VARIANCE' if variance_applied else 'OK'} "
+        f"| min={min_value} max={max_value}"
     )
+

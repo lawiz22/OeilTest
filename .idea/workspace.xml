@@ -4,14 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a7cad1cd-3d75-4acc-9ad2-d4c9cf7c0d3a" name="Changes" comment="Initial" />
+    <list default="true" id="a7cad1cd-3d75-4acc-9ad2-d4c9cf7c0d3a" name="Changes" comment="Initial">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/azcopy_uploader.py" beforeDir="false" afterPath="$PROJECT_DIR$/azcopy_uploader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/core/extractor.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/core/extractor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python/runners/run_extractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/python/runners/run_extractions.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="44" />
+    <option name="cachedIndexableFilesCount" value="88" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="FileTemplateManagerImpl">
@@ -54,49 +59,49 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python tests.Python tests in test_ctrl.py.executor": "Run",
-    "Python.azcopy_uploader.executor": "Run",
-    "Python.create_schema.executor": "Run",
-    "Python.generate_fake_data.executor": "Run",
-    "Python.ok_ctrl.executor": "Run",
-    "Python.reset_oeil_environment.executor": "Run",
-    "Python.run_extractions.executor": "Run",
-    "Python.run_extractor_vigie.executor": "Run",
-    "Python.run_sla_compute.executor": "Run",
-    "Python.run_vigie_faker.py.executor": "Run",
-    "Python.run_vigie_sla_finalize.executor": "Run",
-    "Python.schemas.executor": "Run",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "ai.playground.ignore.import.keys.banner.in.settings": "true",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "junie.onboarding.icon.badge.shown": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python tests.Python tests in test_ctrl.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.azcopy_uploader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.create_schema.executor&quot;: &quot;Run&quot;,
+    &quot;Python.generate_fake_data.executor&quot;: &quot;Run&quot;,
+    &quot;Python.ok_ctrl.executor&quot;: &quot;Run&quot;,
+    &quot;Python.reset_oeil_environment.executor&quot;: &quot;Run&quot;,
+    &quot;Python.run_extractions.executor&quot;: &quot;Run&quot;,
+    &quot;Python.run_extractor_vigie.executor&quot;: &quot;Run&quot;,
+    &quot;Python.run_sla_compute.executor&quot;: &quot;Run&quot;,
+    &quot;Python.run_vigie_faker.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.run_vigie_sla_finalize.executor&quot;: &quot;Run&quot;,
+    &quot;Python.schemas.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\Louis-Martin Richard\PycharmProjects\OeilTest\Oeil" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.ok_ctrl">
     <configuration name="ok_ctrl" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="OeilTest" />
       <option name="ENV_FILES" value="" />
@@ -170,6 +175,7 @@
       <workItem from="1769797242576" duration="30544000" />
       <workItem from="1769956585009" duration="178383000" />
       <workItem from="1770999943237" duration="4007000" />
+      <workItem from="1771085766434" duration="962000" />
     </task>
     <task id="LOCAL-00001" summary="Initial">
       <option name="closed" value="true" />

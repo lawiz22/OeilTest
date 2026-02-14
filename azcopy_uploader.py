@@ -27,8 +27,9 @@ cmd = [
     SOURCE,
     DEST,
     "--recursive=true",
+    "--output-type=text",
     "--from-to=LocalBlob",
-    "--overwrite=ifSourceNewer",
+    "--overwrite=true",
     "--log-level=INFO"
 ]
 
