@@ -8,14 +8,13 @@ SOURCE = r"C:\Users\Louis-Martin Richard\PycharmProjects\OeilTest\output\bronze"
 
 DEST = (
     "https://lawizlake.blob.core.windows.net/banquelaw"
-    "?sp=racwl"
-    "&st=2026-02-07T05:00:00Z"
-    "&se=2026-02-15T03:14:19Z"
+    "?sp=racwdl"
+    "&st=2026-02-15T13:47:00Z"
+    "&se=2026-02-15T22:02:00Z"
     "&spr=https"
     "&sv=2024-11-04"
-    "&sr=d"
-    "&sdd=1"
-    "&sig=r9ZeN1BOnS4QpLwXtb0JoT4Bpo6mwxDwQrpOdQH1p4I%3D"
+    "&sr=c"
+    "&sig=1pyNQMOzXazpqEh3BvYmJ%2FGwkBqWyxh4ppb3zDdhVRI%3D"
 )
 
 # =====================================================

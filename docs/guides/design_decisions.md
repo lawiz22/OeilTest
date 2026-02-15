@@ -21,6 +21,17 @@ L'ŒIL a été conçu avec des contraintes spécifiques de coût, traçabilité 
 *   ADF peut faire des validations simples (row count, file size) gratuitement.
 *   On réserve Synapse pour les validations complexes (checksum contenu, distribution statistique) qui nécessitent de lire tout le fichier.
 
+### Comparatif des approches de validation (coût / complexité / latence)
+
+Ce comparatif sert de référence stratégique pour choisir la bonne méthode de validation selon le contexte dataset/environnement.
+
+| Méthode | Coût | Complexité | Latence |
+|---|---|---|---|
+| SQL External Table | 💲 faible | simple | rapide |
+| Synapse Serverless | 💲 variable | moyen | moyen |
+| Synapse Dedicated | 💲💲💲 | élevé | rapide |
+| Spark Notebook | 💲💲 | plus lourd | plus lent |
+
 ## 3. Double SLA (Volume-Based vs Fixed)
 
 **Décision** : Distinguer le calcul de SLA selon le moteur.
