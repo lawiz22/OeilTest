@@ -54,6 +54,26 @@ Contient les métriques de validation fine calculées à la source ou par Synaps
 - `min_max` : Bornes observées sur la colonne clé.
 - `checksum` : Empreinte cryptographique de la colonne clé (pour détecter des modifications silencieuses).
 
+## 👁️ Concept “Œil gauche / Œil droit”
+
+Ce framework confronte systématiquement ce qui est **déclaré** (intention) avec ce qui est **mesuré** (réalité).
+
+| INTENTION (Ce qui est déclaré) | RÉALITÉ (Ce qui est observé) |
+|---|---|
+| 👁️ **Œil gauche** | 👁️ **Œil droit** |
+| DataStage / Control-M | ADF + Synapse Serverless |
+| Fichier CTRL préparé | Rowcount calculé |
+| Volume attendu | Volume réel |
+| Métadonnées run | MIN / MAX validés |
+| Planification SLA | Durée mesurée |
+| — | Écart % détecté |
+
+Lecture opérationnelle :
+
+- L’**œil gauche** fixe le contrat d’exécution attendu (CTRL).
+- L’**œil droit** vérifie les faits observés en exécution (ADF, Synapse, SQL).
+- La valeur de L’ŒIL est l’**écart** entre les deux, utilisé pour le statut, les SLA et les alertes.
+
 ### Payload Hash
 Sécurité et intégrité du fichier de contrôle lui-même.
 - `payload_canonical` : Chaîne concaténée des champs critiques (`dataset|period|date|rows`).

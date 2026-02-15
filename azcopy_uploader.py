@@ -9,12 +9,12 @@ SOURCE = r"C:\Users\Louis-Martin Richard\PycharmProjects\OeilTest\output\bronze"
 DEST = (
     "https://lawizlake.blob.core.windows.net/banquelaw"
     "?sp=racwdl"
-    "&st=2026-02-15T13:47:00Z"
-    "&se=2026-02-15T22:02:00Z"
+    "&st=2026-02-15T21:58:01Z"
+    "&se=2026-02-22T06:13:01Z"
     "&spr=https"
     "&sv=2024-11-04"
     "&sr=c"
-    "&sig=1pyNQMOzXazpqEh3BvYmJ%2FGwkBqWyxh4ppb3zDdhVRI%3D"
+    "&sig=jPqSp50UxZO4sLfs99a9FVxioFhLeQUEhORyhiB6370%3D"
 )
 
 # =====================================================
@@ -28,7 +28,7 @@ cmd = [
     "--recursive=true",
     "--output-type=text",
     "--from-to=LocalBlob",
-    "--overwrite=true",
+    "--overwrite=ifSourceNewer",
     "--log-level=INFO"
 ]
 
