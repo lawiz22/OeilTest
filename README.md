@@ -4,6 +4,19 @@
 
 L'ŒIL est un framework de contrôle qualité des données conçu pour les environnements Azure. Il orchestre la validation de volumes, de SLA, d'intégrité et de coûts à travers Azure Data Factory, Synapse, Azure SQL et Log Analytics.
 
+## 🧾 Glossaire canonique (rapide)
+
+Pour uniformiser ADF + SQL + reporting, on utilise les clés canoniques suivantes :
+
+- `p_ctrl_id` : identifiant unique du run (`ctrl_id` en base)
+- `p_dataset` : dataset métier (`p_table` dans certains pipelines, `dataset_name` dans les résultats d'intégrité)
+- `p_periodicity` : fréquence (`p_period` dans certains pipelines)
+- `p_extraction_date` : date de référence de la partition
+
+Voir convention complète :
+- [ADF Pipelines](docs/technical_reference/adf_pipelines.md)
+- [Stored Procedures](docs/technical_reference/stored_procedures.md)
+
 ![Build](https://img.shields.io/badge/build-manual-lightgrey)
 ![Coverage](https://img.shields.io/badge/coverage-n/a-lightgrey)
 ![Version](https://img.shields.io/badge/version-2.0-blue)

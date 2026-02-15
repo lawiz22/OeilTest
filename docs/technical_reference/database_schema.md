@@ -43,10 +43,19 @@ Une ligne par exécution de pipeline. Clé primaire : `ctrl_id`.
 |---|---|---|
 | `integrity_result_id` | PK | ID du résultat |
 | `ctrl_id` | FK | Lien vers le run |
+| `dataset_name` | VARCHAR(150) | Dataset évalué |
 | `test_code` | VARCHAR(50) | Code du test exécuté |
+| `column_name` | VARCHAR(150) | Colonne ciblée par le test |
 | `status` | VARCHAR(30) | PASS / WARNING / FAIL |
 | `numeric_value` | FLOAT | Valeur mesurée |
+| `text_value` | VARCHAR(500) | Valeur texte mesurée (si applicable) |
+| `min_value` | FLOAT | Min observé |
+| `max_value` | FLOAT | Max observé |
 | `expected_value` | FLOAT | Valeur attendue (si applicable) |
+| `delta_value` | FLOAT | Écart observé |
+| `execution_time_ms` | INT | Durée d'exécution du test |
+| `synapse_cost_usd` | DECIMAL(10,4) | Coût Synapse estimé pour ce test |
+| `created_at` | DATETIME2 | Timestamp UTC d'insertion |
 
 ### TABLES ANNEXES
 

@@ -2,6 +2,17 @@
 
 Les procédures stockées Azure SQL sont les points d'intégration pour les calculateurs de SLA et le lifecycle du framework.
 
+## Convention de vocabulaire (cross-docs)
+
+Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p_periodicity`, `p_extraction_date`.
+
+| Canonique (docs) | Paramètre SQL (SP) | Paramètre ADF | Colonne SQL fréquente |
+|---|---|---|---|
+| `p_ctrl_id` | `@ctrl_id` | `p_ctrl_id` | `ctrl_id` |
+| `p_dataset` | `@dataset` | `p_dataset` / `p_table` | `dataset_name` |
+| `p_periodicity` | `@periodicity` | `p_periodicity` / `p_period` | `periodicity` |
+| `p_extraction_date` | `@extraction_date` | `p_extraction_date` | `extraction_date` |
+
 | Procédure | Rôle | Moteur | Profil SLA | Formule |
 |---|---|---|---|---|
 | `SP_Set_Start_TS_OEIL` | ⏱️ Lifecycle | — | — | Crée la ligne si elle n'existe pas, pose `start_ts`. Idempotent. |
@@ -50,3 +61,83 @@ Les procédures stockées Azure SQL sont les points d'intégration pour les calc
 2.  Calcule `expected = overhead + (rows/1000 * cost)`.
 3.  Compare `duration` vs `threshold`.
 4.  Update `vigie_ctrl` avec verdict.
+
+## Mini diagrammes (SP critiques)
+
+### 1) `SP_Set_Start_TS_OEIL`
+
+```mermaid
+flowchart TD
+	A[Inputs: p_ctrl_id, p_dataset, p_periodicity, p_extraction_date] --> B{p_ctrl_id existe ?}
+	B -->|Non| C[INSERT ligne vigie_ctrl]
+	B -->|Oui| D[Conserver ligne existante]
+	C --> E{start_ts NULL ?}
+	D --> E
+	E -->|Oui| F[UPDATE start_ts = SYSUTCDATETIME]
+	E -->|Non| G[No-op start_ts]
+	F --> H[UPDATE status_global = IN_PROGRESS]
+	G --> H
+	H --> I[(Output: vigie_ctrl start_ts/status)]
+```
+
+### 2) `SP_Set_End_TS_OEIL`
+
+```mermaid
+flowchart TD
+	A[Input: p_ctrl_id] --> B[UPDATE end_ts = SYSUTCDATETIME]
+	B --> C[Compute duration_sec = end_ts - start_ts]
+	C --> D[Call SP_Compute_SLA_OEIL]
+	D --> E[Set status_global selon verdict]
+	E --> F[(Output: vigie_ctrl end_ts/duration/SLA)]
+```
+
+### 3) `SP_Compute_SLA_OEIL`
+
+```mermaid
+flowchart TD
+	A[Input: p_ctrl_id] --> B[Lookup profil SLA moteur=OEIL]
+	B --> C[Read duration_sec courant]
+	C --> D[Compute expected/threshold]
+	D --> E{duration <= threshold ?}
+	E -->|Oui| F[Set sla_status = PASS]
+	E -->|Non| G[Set sla_status = FAIL]
+	F --> H[(Output: vigie_ctrl SLA OEIL)]
+	G --> H
+```
+
+### 4) `SP_Insert_VigieIntegrityResult`
+
+```mermaid
+flowchart TD
+	A[Inputs: p_ctrl_id, p_dataset, test_code, métriques test] --> B[Mapping SQL: p_dataset -> dataset_name]
+	B --> C[Normaliser valeurs: min/max/expected/delta/status]
+	C --> D[INSERT ligne dbo.vigie_integrity_result]
+	D --> E[(Output: trace d'intégrité persistée)]
+```
+
+## Pipeline Qualité (Intégrité) — Statut actuel
+
+Le pipeline de qualité est opérationnel avec **2 policies activées** :
+
+- `ROW_COUNT`
+- `MIN_MAX`
+
+### Procédures actuellement utilisées
+
+- Azure SQL : `dbo.SP_Insert_VigieIntegrityResult`
+- Synapse : `ctrl.SP_OEIL_ROWCOUNT`
+- Synapse : `ctrl.SP_OEIL_MIN_MAX`
+
+### Résultats observés (exemple validé)
+
+Exemple sur `ctrl_id = clients_2026-05-01_Q` :
+
+| integrity_result_id | test_code | column_name | min_value | max_value | expected_value | delta_value | status | execution_time_ms |
+|---|---|---|---:|---:|---:|---:|---|---:|
+| 6 | MIN_MAX | client_id | 101113 | 999862 | 101113 | 0 | PASS | 3 |
+| 5 | ROW_COUNT | 'ROWCOUNT' | 872 | 0 | 872 | 0 | PASS | 3 |
+
+Notes :
+
+- Les résultats sont persistés dans `dbo.vigie_integrity_result`.
+- Le détail d'orchestration (JSON pipeline + screenshot) sera documenté dans une section dédiée dès intégration des artefacts ADF.
