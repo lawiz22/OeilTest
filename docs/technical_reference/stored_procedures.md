@@ -21,6 +21,7 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 | `SP_Compute_SLA_SYNAPSE` | 📊 Calcul | **SYNAPSE** | `EXECUTION_TYPE` | Lit durée Synapse, calcule SLA fixed overhead. |
 | `SP_Compute_SLA_OEIL` | 📊 Calcul | **OEIL** | `EXECUTION_TYPE` | Appelé en interne par `SP_Set_End`, mais peut être rappelé pour recalcul. |
 | `SP_Compute_SLA_Vigie` | 📊 Calcul | **GLOBAL** | `DATASET` (futur) | Calcul SLA global par dataset (plus fin que par moteur). |
+| `SP_Update_VigieCtrl_FromIntegrity` | 🔁 Sync qualité → run | **OEIL** | — | Reprend le dernier `ROWCOUNT` de `vigie_integrity_result` et met à jour `vigie_ctrl` (timestamps/durée/status/rowcount). |
 
 ## Parameters and Logic
 
@@ -61,6 +62,19 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 2.  Calcule `expected = overhead + (rows/1000 * cost)`.
 3.  Compare `duration` vs `threshold`.
 4.  Update `vigie_ctrl` avec verdict.
+
+### `SP_Update_VigieCtrl_FromIntegrity`
+
+```sql
+@ctrl_id NVARCHAR(150)
+```
+
+1.  Lit la dernière ligne `ROWCOUNT` de `dbo.vigie_integrity_result` pour `@ctrl_id`.
+2.  Calcule `synapse_duration_sec = DATEDIFF(SECOND, synapse_start_ts, synapse_end_ts)`.
+3.  Met à jour `dbo.vigie_ctrl` avec :
+	- `synapse_start_ts`, `synapse_end_ts`, `synapse_duration_sec`
+	- `row_count_adf_ingestion_copie_parquet` (depuis `min_value` casté INT)
+	- `status` (depuis le `status` d'intégrité)
 
 ## Mini diagrammes (SP critiques)
 
@@ -115,6 +129,16 @@ flowchart TD
 	D --> E[(Output: trace d'intégrité persistée)]
 ```
 
+### 5) `SP_Update_VigieCtrl_FromIntegrity`
+
+```mermaid
+flowchart TD
+	A[Input: p_ctrl_id] --> B[SELECT TOP 1 ROWCOUNT dans vigie_integrity_result]
+	B --> C[Compute synapse_duration_sec]
+	C --> D[UPDATE dbo.vigie_ctrl]
+	D --> E[(Output: sync run metrics depuis intégrité)]
+```
+
 ## Pipeline Qualité (Intégrité) — Statut actuel
 
 Le pipeline de qualité est opérationnel avec **2 policies activées** :
@@ -125,6 +149,7 @@ Le pipeline de qualité est opérationnel avec **2 policies activées** :
 ### Procédures actuellement utilisées
 
 - Azure SQL : `dbo.SP_Insert_VigieIntegrityResult`
+- Azure SQL : `dbo.SP_Update_VigieCtrl_FromIntegrity`
 - Synapse : `ctrl.SP_OEIL_ROWCOUNT`
 - Synapse : `ctrl.SP_OEIL_MIN_MAX`
 
