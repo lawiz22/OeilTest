@@ -10,6 +10,8 @@ PRINT CONCAT('[INFO] Running cleanup in DB: ', DB_NAME());
 
 SELECT 'before' AS phase, 'synapse_rowcount_cache' AS table_name, COUNT(*) AS row_count FROM dbo.synapse_rowcount_cache
 UNION ALL
+SELECT 'before', 'vigie_integrity_result', COUNT(*) FROM dbo.vigie_integrity_result
+UNION ALL
 SELECT 'before', 'vigie_ctrl', COUNT(*) FROM dbo.vigie_ctrl
 UNION ALL
 SELECT 'before', 'ctrl_file_index', COUNT(*) FROM dbo.ctrl_file_index;
@@ -25,6 +27,16 @@ BEGIN TRY
 	ELSE
 	BEGIN
 		PRINT '[INFO] dbo.synapse_rowcount_cache does not exist';
+	END;
+
+	IF OBJECT_ID(N'dbo.vigie_integrity_result', N'U') IS NOT NULL
+	BEGIN
+		DELETE FROM dbo.vigie_integrity_result;
+		PRINT CONCAT('[OK] dbo.vigie_integrity_result deleted rows: ', @@ROWCOUNT);
+	END
+	ELSE
+	BEGIN
+		PRINT '[INFO] dbo.vigie_integrity_result does not exist';
 	END;
 
 	IF OBJECT_ID(N'dbo.vigie_ctrl', N'U') IS NOT NULL
@@ -59,6 +71,8 @@ BEGIN CATCH
 END CATCH;
 
 SELECT 'after' AS phase, 'synapse_rowcount_cache' AS table_name, COUNT(*) AS row_count FROM dbo.synapse_rowcount_cache
+UNION ALL
+SELECT 'after', 'vigie_integrity_result', COUNT(*) FROM dbo.vigie_integrity_result
 UNION ALL
 SELECT 'after', 'vigie_ctrl', COUNT(*) FROM dbo.vigie_ctrl
 UNION ALL
