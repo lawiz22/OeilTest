@@ -1,7 +1,6 @@
-CREATE PROCEDURE ctrl.SP_OEIL_MIN_MAX
+CREATE OR ALTER PROCEDURE ctrl.SP_OEIL_ROWCOUNT
     @bronze_path NVARCHAR(500),
-    @parquet_path NVARCHAR(500),
-    @column_name NVARCHAR(128)
+    @parquet_path NVARCHAR(500)
 AS
 BEGIN
 
@@ -9,9 +8,7 @@ BEGIN
 
     SET @sql = '
     WITH bronze_data AS (
-        SELECT
-            MIN(' + QUOTENAME(@column_name) + ') AS bronze_min,
-            MAX(' + QUOTENAME(@column_name) + ') AS bronze_max
+        SELECT COUNT(*) AS bronze_count
         FROM OPENROWSET(
             BULK ''' + @bronze_path + ''',
             DATA_SOURCE = ''ds_adls_bronze'',
@@ -27,9 +24,7 @@ BEGIN
         ) AS rows
     ),
     parquet_data AS (
-        SELECT
-            MIN(' + QUOTENAME(@column_name) + ') AS parquet_min,
-            MAX(' + QUOTENAME(@column_name) + ') AS parquet_max
+        SELECT COUNT(*) AS parquet_count
         FROM OPENROWSET(
             BULK ''' + @parquet_path + ''',
             DATA_SOURCE = ''ds_adls_standardized'',
@@ -37,13 +32,11 @@ BEGIN
         ) AS rows
     )
     SELECT
-        b.bronze_min,
-        b.bronze_max,
-        p.parquet_min,
-        p.parquet_max,
+        b.bronze_count,
+        p.parquet_count,
+        (b.bronze_count - p.parquet_count) AS delta_count,
         CASE 
-            WHEN b.bronze_min = p.parquet_min
-             AND b.bronze_max = p.parquet_max
+            WHEN b.bronze_count = p.parquet_count
             THEN ''PASS''
             ELSE ''FAIL''
         END AS integrity_status
