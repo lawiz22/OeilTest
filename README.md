@@ -37,6 +37,7 @@ Vue d'ensemble des composants (ADF, SQL, Synapse) et flux de données.
 ### 📖 Guides
 - **[Tableau de Bord Power BI](docs/guides/powerbi_dashboard.md)**: Comprendre les métriques.
 - **[Choix de Design](docs/guides/design_decisions.md)**: Raisons derrière l'architecture.
+- **[Release Checklist](docs/guides/release_checklist.md)**: Runbook rapide pour les démos et exécutions complètes.
 
 ---
 

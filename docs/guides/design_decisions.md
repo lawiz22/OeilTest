@@ -32,6 +32,20 @@ Ce comparatif sert de référence stratégique pour choisir la bonne méthode de
 | Synapse Dedicated | 💲💲💲 | élevé | rapide |
 | Spark Notebook | 💲💲 | plus lourd | plus lent |
 
+### Architecture mature (pattern cible)
+
+Dans une grande organisation, le pattern cible recommandé est le suivant :
+
+| Type d’opération | Moteur |
+|---|---|
+| Row count | SQL |
+| Min / Max | SQL |
+| Null count | SQL |
+| Simple delta | SQL |
+| Checksum massif | Synapse |
+| Agrégation lourde multi-partition | Synapse |
+| Traitement distribué complexe | Spark |
+
 ## 3. Double SLA (Volume-Based vs Fixed)
 
 **Décision** : Distinguer le calcul de SLA selon le moteur.
