@@ -13,7 +13,8 @@ def write_fake_vigie_run(
     extraction_date,
     expected_rows,
     chaos_level=50,
-    source_system="LEGACY_DS"
+    source_system="LEGACY_DS",
+    force_ingested_equals_expected=False
 ):
     run_day = datetime.fromisoformat(extraction_date)
 
@@ -32,6 +33,11 @@ def write_fake_vigie_run(
 
     bronze_delta = bronze_rows - expected_rows
     parquet_delta = parquet_rows - expected_rows
+
+    if force_ingested_equals_expected:
+        row_count_adf_ingestion_copie_parquet = expected_rows
+    else:
+        row_count_adf_ingestion_copie_parquet = parquet_rows
 
     bronze_status = "OK" if bronze_delta == 0 else "MISMATCH"
     parquet_status = "OK" if parquet_delta == 0 else "KO"
@@ -189,7 +195,7 @@ def write_fake_vigie_run(
         parquet_delta,
         parquet_status,
 
-        parquet_rows,
+        row_count_adf_ingestion_copie_parquet,
         adf_start_ts,
         adf_end_ts,
         adf_duration,

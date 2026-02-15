@@ -29,8 +29,8 @@ from python.core.vigie_faker import write_fake_vigie_run
 # 🔧 CONFIG — TOUCHE ICI
 # =====================================================
 
-START_DATE = "2026-05-01"
-END_DATE   = "2026-05-30"
+START_DATE = "2026-07-01"
+END_DATE   = "2026-07-05"
 
 DATASETS = [
     "transactions",
@@ -40,7 +40,8 @@ DATASETS = [
 ]
 
 PERIODICITY = "Q"
-CHAOS_LEVEL = 100
+CHAOS_LEVEL = 0
+FORCE_INGESTED_EQUALS_EXPECTED = True
 
 EXPECTED_ROWS_BASE = {
     "clients": 123,
@@ -78,7 +79,8 @@ def main():
                 periodicity=PERIODICITY,
                 extraction_date=current.date().isoformat(),
                 expected_rows=expected_rows,
-                chaos_level=CHAOS_LEVEL
+                chaos_level=CHAOS_LEVEL,
+                force_ingested_equals_expected=FORCE_INGESTED_EQUALS_EXPECTED
             )
 
             total += 1
