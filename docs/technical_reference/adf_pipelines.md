@@ -2,6 +2,11 @@
 
 Les pipelines Azure Data Factory sont les moteurs d'ingestion et de transformation.
 
+## Marquage audit
+
+- **[Implemented]** : reflète le JSON pipeline actuel.
+- **[Recommended]** : convention d'exploitation/documentation.
+
 ## Convention de vocabulaire (cross-docs)
 
 Pour uniformiser la lecture entre ADF, SQL et reporting, les termes canoniques sont :
@@ -193,10 +198,20 @@ flowchart TD
 
 Pipeline de consolidation qui lit le CTRL JSON Bronze, met à jour `dbo.vigie_ctrl`, récupère les métriques ADF, déclenche `PL_Oeil_Quality_Engine` (Synapse centralisé), puis finalise SLA/buckets/alertes.
 
-Note de review:
+Note de review [Implemented]:
 
 - `p_control_path` est encore déclaré mais le chemin effectif est reconstruit depuis `p_ctrl_id` dans `Set Control_Path`.
 - `p_environment` n'est pas passé explicitement au `PL_Oeil_Quality_Engine` dans cet appel (le pipeline qualité applique donc sa valeur par défaut).
+
+### Dépendances ADF / Log Analytics (polling) [Implemented]
+
+Pour fiabiliser la récupération des métriques d'ingestion :
+
+- Le polling est géré par `Until_Get_ADF_Metrics`.
+- Timeout de boucle : `00:05:00`.
+- Retry activité : `0` (pas de retry ADF natif sur cette étape).
+- Backoff : fixe via `Wait 30 sec` tant que la métrique n'est pas disponible.
+- Critère de métrique ADF valide : `row_count_adf_ingestion_copie_parquet` non nul (avec `adf_start_ts`, `adf_end_ts`, `adf_duration_sec` issus de la même requête KQL).
 
 ### Activités clés (vue simplifiée)
 

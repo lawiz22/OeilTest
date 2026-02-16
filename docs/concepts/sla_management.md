@@ -2,6 +2,11 @@
 
 L'ŒIL propose un calcul de **Service Level Agreement (SLA)** différentié par moteur d'exécution (ADF, Synapse, L'ŒIL) pour détecter précisément les goulots d'étranglement.
 
+## Marquage audit
+
+- **[Implemented]** : confirmé dans les SP/pipelines versionnés.
+- **[Recommended]** : règle de cadrage opérationnel recommandée.
+
 ## Principes Généraux
 
 Un run est classifié selon sa durée d'exécution par rapport à un **seuil attendu** (threshold).
@@ -55,3 +60,30 @@ Les paramètres sont stockés dans la table `sla_profile_execution_type` :
 | **OEIL** | 360s | — | 22% |
 
 > **Note** : Une future version permettra de surcharger ces profils par dataset via la table `sla_profile`.
+
+## Cohérence temporelle (règles d'implémentation) [Recommended]
+
+Pour éviter les durées incohérentes ou nulles :
+
+- `start_ts` / `end_ts` (OEIL global) ne doivent pas être réécrits si déjà présents sur un run finalisé.
+- Les durées doivent rester **séparées** par couche :
+	- `adf_duration_sec` pour l'ingestion ADF,
+	- `synapse_duration_sec` pour le compute Synapse,
+	- `duration_sec` pour l'orchestration OEIL globale.
+- Le calcul SLA OEIL (`oeil_sla_*`) ne doit pas fusionner les mesures ADF/Synapse ; il consomme la durée OEIL dédiée.
+
+## Coût Synapse (estimation) [Implemented]
+
+Formule de référence :
+
+$$
+	ext{cout\_estime\_cad} = \left(\frac{\text{synapse\_duration\_sec}}{60}\right) \times \text{cost\_per\_minute\_cad}
+$$
+
+Hypothèses minimales à documenter dans chaque environnement :
+
+| Paramètre | Champ cible | Exemple |
+|---|---|---|
+| `synapse_duration_sec` | `vigie_ctrl.synapse_duration_sec` | `95` |
+| `cost_per_minute_cad` | `vigie_ctrl.synapse_cost_rate_cad_per_min` | `0.002` |
+| `cout_estime_cad` | `vigie_ctrl.synapse_cost_estimated_cad` | `0.003167` |

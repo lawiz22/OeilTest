@@ -76,6 +76,11 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 	- `row_count_adf_ingestion_copie_parquet` (depuis `min_value` casté INT)
 	- `status` (depuis le `status` d'intégrité)
 
+Règle de réduction (tests multiples) [Implemented]:
+
+- Si plusieurs résultats existent pour un même `ctrl_id` + `ROWCOUNT`, la procédure prend le plus récent.
+- Le choix est explicite (`TOP 1 ... ORDER BY integrity_result_id DESC`) pour éviter toute dépendance à l'ordre implicite d'insertion.
+
 ## Mini diagrammes (SP critiques)
 
 ### 1) `SP_Set_Start_TS_OEIL`

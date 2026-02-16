@@ -2,6 +2,11 @@
 
 Le schéma SQL est le cœur du framework. Il stocke l'état, l'historique et la configuration.
 
+## Marquage audit
+
+- **[Implemented]** : confirmé dans les scripts/pipelines versionnés.
+- **[Recommended]** : convention cible validée, à aligner selon environnement.
+
 ## Tables Principales
 
 ### `dbo.vigie_ctrl` (Run Metrics)
@@ -78,6 +83,27 @@ Indexes / contraintes notables :
 
 - `PK_vigie_ctrl (ctrl_id)`
 - `IX_vigie_ctrl_dataset_date (dataset, periodicity, extraction_date)`
+
+#### Sémantique des statuts (consommation BI / PM / Ingénierie) [Implemented]
+
+| Colonne | Signification | Source |
+|---|---|---|
+| `status` | Résultat du test courant remonté depuis l'engine d'intégrité | Integrity engine |
+| `status_global` | État global d'orchestration du pipeline | Orchestration ADF/SQL |
+| `adf_sla_status` | Verdict SLA ingestion | Métriques ADF (Log Analytics) |
+| `oeil_sla_status` | Verdict SLA orchestration OEIL | Compute SLA OEIL |
+| `synapse_sla_status` | Verdict SLA compute Synapse | Quality Engine + compute SLA Synapse |
+| `alert_flag`, `alert_level` | Synthèse d'alerte métier | Règles d'alerting SQL |
+
+#### Conventions volume / valeurs par défaut (doc de référence) [Recommended]
+
+| Cas | Valeur recommandée | Interprétation |
+|---|---|---|
+| Rowcount = `0` | `volume_status = EMPTY` | Run valide mais dataset vide |
+| Rowcount = `NULL` | `volume_status = MISSING` | Mesure absente/non récupérée |
+| `expected_rows = 0` | Statut exceptionnel (`EXPECTED_ZERO`) | Cas métier explicite, hors comparaison standard |
+
+Note : si un environnement conserve encore les buckets historiques (`OK`, `WARNING`, `ANOMALY`, `UNKNOWN`), documenter localement le mapping vers les conventions ci-dessus.
 
 ### `dbo.vigie_policy_dataset` (Policy Dataset v2)
 
