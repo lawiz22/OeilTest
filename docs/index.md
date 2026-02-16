@@ -4,6 +4,8 @@
 
 L'ŒIL est un framework de contrôle qualité des données conçu pour les environnements Azure. Il orchestre la validation de volumes, de SLA, d'intégrité et de coûts à travers Azure Data Factory, Synapse, Azure SQL et Log Analytics.
 
+> **Mise à jour architecture** : la validation Synapse est maintenant centralisée dans `PL_Oeil_Quality_Engine` (déclenché par `PL_Ctrl_To_Vigie`). L'ancien pipeline Synapse partition dédié a été retiré.
+
 ## 🧾 Glossaire canonique (rapide)
 
 Pour uniformiser ADF + SQL + reporting, on utilise les clés canoniques suivantes :

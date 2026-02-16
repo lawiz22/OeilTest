@@ -95,14 +95,14 @@
                                 "value": "@activity('LK_Read_CtrlJson').output.firstRow.extraction_date",
                                 "type": "Expression"
                             },
-                            "type": "String"
+                            "type": "Datetime"
                         },
                         "expected_rows": {
                             "value": {
                                 "value": "@activity('LK_Read_CtrlJson').output.firstRow.expected_rows",
                                 "type": "Expression"
                             },
-                            "type": "String"
+                            "type": "Int32"
                         },
                         "source_system": {
                             "value": {
@@ -116,11 +116,11 @@
                                 "value": "@activity('LK_Read_CtrlJson').output.firstRow.created_ts",
                                 "type": "Expression"
                             },
-                            "type": "String"
+                            "type": "Datetime"
                         },
-                        "adf_start_ts": {
+                        "pipeline_run_id": {
                             "value": {
-                                "value": "@activity('WEB_ADF_RowCount_Copie_Parquet').output.tables[0].rows[0][1]",
+                                "value": "@pipeline().RunId\n",
                                 "type": "Expression"
                             },
                             "type": "String"
@@ -139,30 +139,30 @@
                             },
                             "type": "String"
                         },
-                        "pipeline_run_id": {
+                        "adf_start_ts": {
                             "value": {
-                                "value": "@pipeline().RunId",
+                                "value": "@activity('WEB_ADF_RowCount_Copie_Parquet').output.tables[0].rows[0][1]",
                                 "type": "Expression"
                             },
-                            "type": "String"
-                        },
-                        "row_count_adf_ingestion_copie_parquet": {
-                            "value": {
-                                "value": "@activity('WEB_ADF_RowCount_Copie_Parquet').output.tables[0].rows[0][0]",
-                                "type": "Expression"
-                            },
-                            "type": "String"
+                            "type": "Datetime"
                         },
                         "adf_end_ts": {
                             "value": {
                                 "value": "@activity('WEB_ADF_RowCount_Copie_Parquet').output.tables[0].rows[0][2]",
                                 "type": "Expression"
                             },
-                            "type": "String"
+                            "type": "Datetime"
                         },
                         "adf_duration_sec": {
                             "value": {
-                                "value": "@activity('WEB_ADF_RowCount_Copie_Parquet').output.tables[0].rows[0][3]",
+                                "value": "@int(activity('WEB_ADF_RowCount_Copie_Parquet').output.tables[0].rows[0][3])",
+                                "type": "Expression"
+                            },
+                            "type": "Int32"
+                        },
+                        "row_count_adf_ingestion_copie_parquet": {
+                            "value": {
+                                "value": "@string(activity('WEB_ADF_RowCount_Copie_Parquet').output.tables[0].rows[0][0])",
                                 "type": "Expression"
                             },
                             "type": "String"
@@ -179,9 +179,9 @@
                 "type": "Script",
                 "dependsOn": [
                     {
-                        "activity": "IF_Enable_Synapse_Validation",
+                        "activity": "Pipeline Qualite",
                         "dependencyConditions": [
-                            "Completed"
+                            "Succeeded"
                         ]
                     }
                 ],
@@ -329,394 +329,10 @@
                         "Content-Type": "application/x-www-form-urlencoded"
                     },
                     "url": "https://login.microsoftonline.com/9efa3aee-91e4-46cb-a42d-157e10be0b3f/oauth2/v2.0/token",
-                    "body": "grant_type=client_credentials\n&client_id=616f9a3f-e6e8-45e8-a63e-5fd59ffcd73e\n&client_secret=<<REPLACE_WITH_SECRET>>\n&scope=https://api.loganalytics.io/.default"
-                }
-            },
-            {
-                "name": "IF_Enable_Synapse_Validation",
-                "type": "IfCondition",
-                "dependsOn": [
-                    {
-                        "activity": "SC_Set_Volume_Check",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ],
-                "userProperties": [],
-                "typeProperties": {
-                    "expression": {
-                        "value": "@equals(pipeline().parameters.enable_synapse_validation, true)",
+                    "body": {
+                        "value": "@concat('grant_type=client_credentials&client_id=616f9a3f-e6e8-45e8-a63e-5fd59ffcd73e&client_secret=', pipeline().parameters.p_log_analytics_client_secret, '&scope=https://api.loganalytics.io/.default')",
                         "type": "Expression"
-                    },
-                    "ifTrueActivities": [
-                        {
-                            "name": "Set v dataset",
-                            "type": "SetVariable",
-                            "dependsOn": [],
-                            "policy": {
-                                "secureOutput": false,
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "typeProperties": {
-                                "variableName": "v_dataset",
-                                "value": {
-                                    "value": "@activity('LK_Read_CtrlJson').output.firstRow.dataset",
-                                    "type": "Expression"
-                                }
-                            }
-                        },
-                        {
-                            "name": "Set v periodicity",
-                            "type": "SetVariable",
-                            "dependsOn": [
-                                {
-                                    "activity": "Set v dataset",
-                                    "dependencyConditions": [
-                                        "Succeeded"
-                                    ]
-                                }
-                            ],
-                            "policy": {
-                                "secureOutput": false,
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "typeProperties": {
-                                "variableName": "v_periodicity",
-                                "value": {
-                                    "value": "@activity('LK_Read_CtrlJson').output.firstRow.periodicity",
-                                    "type": "Expression"
-                                }
-                            }
-                        },
-                        {
-                            "name": "Set V extraction date",
-                            "type": "SetVariable",
-                            "dependsOn": [
-                                {
-                                    "activity": "Set v periodicity",
-                                    "dependencyConditions": [
-                                        "Succeeded"
-                                    ]
-                                }
-                            ],
-                            "policy": {
-                                "secureOutput": false,
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "typeProperties": {
-                                "variableName": "v_extraction_date",
-                                "value": {
-                                    "value": "@activity('LK_Read_CtrlJson').output.firstRow.extraction_date",
-                                    "type": "Expression"
-                                }
-                            }
-                        },
-                        {
-                            "name": "EP Synapse Asynch Count",
-                            "type": "ExecutePipeline",
-                            "dependsOn": [
-                                {
-                                    "activity": "SC_Set_Synapse_Start_TS",
-                                    "dependencyConditions": [
-                                        "Succeeded"
-                                    ]
-                                }
-                            ],
-                            "policy": {
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "typeProperties": {
-                                "pipeline": {
-                                    "referenceName": "PL_Synapse_Count_By_Partition",
-                                    "type": "PipelineReference"
-                                },
-                                "waitOnCompletion": true,
-                                "parameters": {
-                                    "p_dataset": {
-                                        "value": "@variables('v_dataset')",
-                                        "type": "Expression"
-                                    },
-                                    "p_periodicity": {
-                                        "value": "@variables('v_periodicity')",
-                                        "type": "Expression"
-                                    },
-                                    "p_bronze_path": {
-                                        "value": "@variables('v_bronze_path')",
-                                        "type": "Expression"
-                                    },
-                                    "p_parquet_path": {
-                                        "value": "@variables('v_parquet_path')",
-                                        "type": "Expression"
-                                    },
-                                    "p_extraction_date": {
-                                        "value": "@variables('v_extraction_date')",
-                                        "type": "Expression"
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            "name": "SC_Update_Bronze_From_Cache_copy1",
-                            "type": "Script",
-                            "dependsOn": [
-                                {
-                                    "activity": "EP Synapse Asynch Count",
-                                    "dependencyConditions": [
-                                        "Succeeded"
-                                    ]
-                                }
-                            ],
-                            "policy": {
-                                "timeout": "0.12:00:00",
-                                "retry": 0,
-                                "retryIntervalInSeconds": 30,
-                                "secureOutput": false,
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "linkedServiceName": {
-                                "referenceName": "LS_AzureSQL_Vigie",
-                                "type": "LinkedServiceReference"
-                            },
-                            "typeProperties": {
-                                "scripts": [
-                                    {
-                                        "parameters": [
-                                            {
-                                                "name": "ctrl_id",
-                                                "type": "String",
-                                                "value": {
-                                                    "value": "@pipeline().parameters.p_ctrl_id",
-                                                    "type": "Expression"
-                                                },
-                                                "direction": "Input"
-                                            }
-                                        ],
-                                        "type": "Query",
-                                        "text": "UPDATE v\nSET\n    v.bronze_rows  = c.row_count,\n    v.bronze_delta = c.row_count - v.expected_rows,\n    v.bronze_status =\n        CASE\n            WHEN c.row_count = v.expected_rows THEN 'OK'\n            WHEN c.row_count IS NULL THEN 'MISSING'\n            ELSE 'MISMATCH'\n        END\nFROM dbo.vigie_ctrl v\nLEFT JOIN dbo.synapse_rowcount_cache c\n    ON  c.dataset = v.dataset\n    AND c.periodicity = v.periodicity\n    AND c.extraction_date = v.extraction_date\n    AND c.layer = 'BRONZE'\nWHERE v.ctrl_id = @ctrl_id;"
-                                    }
-                                ],
-                                "scriptBlockExecutionTimeout": "02:00:00"
-                            }
-                        },
-                        {
-                            "name": "SC_Update_Parquet_From_Cache_copy1",
-                            "type": "Script",
-                            "dependsOn": [
-                                {
-                                    "activity": "SC_Update_Bronze_From_Cache_copy1",
-                                    "dependencyConditions": [
-                                        "Succeeded"
-                                    ]
-                                }
-                            ],
-                            "policy": {
-                                "timeout": "0.12:00:00",
-                                "retry": 0,
-                                "retryIntervalInSeconds": 30,
-                                "secureOutput": false,
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "linkedServiceName": {
-                                "referenceName": "LS_AzureSQL_Vigie",
-                                "type": "LinkedServiceReference"
-                            },
-                            "typeProperties": {
-                                "scripts": [
-                                    {
-                                        "parameters": [
-                                            {
-                                                "name": "ctrl_id",
-                                                "type": "String",
-                                                "value": {
-                                                    "value": "@pipeline().parameters.p_ctrl_id",
-                                                    "type": "Expression"
-                                                },
-                                                "direction": "Input"
-                                            }
-                                        ],
-                                        "type": "Query",
-                                        "text": "UPDATE v\nSET\n    v.parquet_rows  = c.row_count,\n    v.parquet_delta = c.row_count - v.expected_rows,\n    v.parquet_status =\n        CASE\n            WHEN c.row_count = v.expected_rows THEN 'OK'\n            WHEN c.row_count = 0 THEN 'EMPTY'\n            WHEN c.row_count IS NULL THEN 'MISSING'\n            ELSE 'KO'\n        END\nFROM dbo.vigie_ctrl v\nLEFT JOIN dbo.synapse_rowcount_cache c\n    ON  c.dataset = v.dataset\n    AND c.periodicity = v.periodicity\n    AND c.extraction_date = v.extraction_date\n    AND c.layer = 'PARQUET'\nWHERE v.ctrl_id = @ctrl_id;\n"
-                                    }
-                                ],
-                                "scriptBlockExecutionTimeout": "02:00:00"
-                            }
-                        },
-                        {
-                            "name": "SC_Set_Synapse_Start_TS",
-                            "type": "Script",
-                            "dependsOn": [
-                                {
-                                    "activity": "Set V extraction date",
-                                    "dependencyConditions": [
-                                        "Succeeded"
-                                    ]
-                                }
-                            ],
-                            "policy": {
-                                "timeout": "0.12:00:00",
-                                "retry": 0,
-                                "retryIntervalInSeconds": 30,
-                                "secureOutput": false,
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "linkedServiceName": {
-                                "referenceName": "LS_AzureSQL_Vigie",
-                                "type": "LinkedServiceReference"
-                            },
-                            "typeProperties": {
-                                "scripts": [
-                                    {
-                                        "parameters": [
-                                            {
-                                                "name": "ctrl_id",
-                                                "type": "String",
-                                                "value": {
-                                                    "value": "@pipeline().parameters.p_ctrl_id",
-                                                    "type": "Expression"
-                                                },
-                                                "direction": "Input"
-                                            }
-                                        ],
-                                        "type": "Query",
-                                        "text": "UPDATE dbo.vigie_ctrl\nSET synapse_start_ts = SYSUTCDATETIME()\nWHERE ctrl_id = @ctrl_id\n  AND synapse_start_ts IS NULL;\n"
-                                    }
-                                ],
-                                "scriptBlockExecutionTimeout": "02:00:00"
-                            }
-                        },
-                        {
-                            "name": "SC_Set_Synapse_End_TS",
-                            "type": "Script",
-                            "dependsOn": [
-                                {
-                                    "activity": "SC_Update_Parquet_From_Cache_copy1",
-                                    "dependencyConditions": [
-                                        "Succeeded"
-                                    ]
-                                }
-                            ],
-                            "policy": {
-                                "timeout": "0.12:00:00",
-                                "retry": 0,
-                                "retryIntervalInSeconds": 30,
-                                "secureOutput": false,
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "linkedServiceName": {
-                                "referenceName": "LS_AzureSQL_Vigie",
-                                "type": "LinkedServiceReference"
-                            },
-                            "typeProperties": {
-                                "scripts": [
-                                    {
-                                        "parameters": [
-                                            {
-                                                "name": "ctrl_id",
-                                                "type": "String",
-                                                "value": {
-                                                    "value": "@pipeline().parameters.p_ctrl_id",
-                                                    "type": "Expression"
-                                                },
-                                                "direction": "Input"
-                                            }
-                                        ],
-                                        "type": "Query",
-                                        "text": "DECLARE @start_ts datetime2;\nDECLARE @end_ts datetime2;\nDECLARE @duration_sec int;\n\nSET @end_ts = SYSUTCDATETIME();\n\nSELECT\n    @start_ts = synapse_start_ts\nFROM dbo.vigie_ctrl\nWHERE ctrl_id = @ctrl_id;\n\nIF @start_ts IS NULL\nBEGIN\n    UPDATE dbo.vigie_ctrl\n    SET\n        synapse_end_ts = @end_ts,\n        synapse_duration_sec = NULL\n    WHERE ctrl_id = @ctrl_id;\n    RETURN;\nEND;\n\nSET @duration_sec = DATEDIFF(SECOND, @start_ts, @end_ts);\n\nUPDATE dbo.vigie_ctrl\nSET\n    synapse_end_ts = @end_ts,\n    synapse_duration_sec = @duration_sec\nWHERE ctrl_id = @ctrl_id;\n"
-                                    }
-                                ],
-                                "scriptBlockExecutionTimeout": "02:00:00"
-                            }
-                        },
-                        {
-                            "name": "SP_Compute_SLA_SYNAPSE",
-                            "type": "SqlServerStoredProcedure",
-                            "dependsOn": [
-                                {
-                                    "activity": "SC_Set_Synapse_End_TS",
-                                    "dependencyConditions": [
-                                        "Succeeded"
-                                    ]
-                                }
-                            ],
-                            "policy": {
-                                "timeout": "0.12:00:00",
-                                "retry": 0,
-                                "retryIntervalInSeconds": 30,
-                                "secureOutput": false,
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "typeProperties": {
-                                "storedProcedureName": "SP_Compute_SLA_SYNAPSE",
-                                "storedProcedureParameters": {
-                                    "p_ctrl_id": {
-                                        "value": {
-                                            "value": "@pipeline().parameters.p_ctrl_id",
-                                            "type": "Expression"
-                                        },
-                                        "type": "String"
-                                    }
-                                }
-                            },
-                            "linkedServiceName": {
-                                "referenceName": "LS_AzureSQL_Vigie",
-                                "type": "LinkedServiceReference"
-                            }
-                        },
-                        {
-                            "name": "SC_Compute_Synapse_Cost_CAD",
-                            "type": "Script",
-                            "dependsOn": [
-                                {
-                                    "activity": "SP_Compute_SLA_SYNAPSE",
-                                    "dependencyConditions": [
-                                        "Succeeded"
-                                    ]
-                                }
-                            ],
-                            "policy": {
-                                "timeout": "0.12:00:00",
-                                "retry": 0,
-                                "retryIntervalInSeconds": 30,
-                                "secureOutput": false,
-                                "secureInput": false
-                            },
-                            "userProperties": [],
-                            "linkedServiceName": {
-                                "referenceName": "LS_AzureSQL_Vigie",
-                                "type": "LinkedServiceReference"
-                            },
-                            "typeProperties": {
-                                "scripts": [
-                                    {
-                                        "parameters": [
-                                            {
-                                                "name": "ctrl_id",
-                                                "type": "String",
-                                                "value": {
-                                                    "value": "@pipeline().parameters.p_ctrl_id",
-                                                    "type": "Expression"
-                                                },
-                                                "direction": "Input"
-                                            }
-                                        ],
-                                        "type": "NonQuery",
-                                        "text": "DECLARE @cost_per_min_cad decimal(10,6) = 0.002;  -- CAD / minute\n\nUPDATE dbo.vigie_ctrl\nSET\n    synapse_cost_rate_cad_per_min = @cost_per_min_cad,\n    synapse_cost_estimated_cad =\n        ROUND((synapse_duration_sec / 60.0) * @cost_per_min_cad, 6)\nWHERE ctrl_id = @ctrl_id\n  AND synapse_duration_sec IS NOT NULL;\n"
-                                    }
-                                ],
-                                "scriptBlockExecutionTimeout": "02:00:00"
-                            }
-                        }
-                    ]
+                    }
                 }
             },
             {
@@ -1243,6 +859,44 @@
                     ],
                     "scriptBlockExecutionTimeout": "02:00:00"
                 }
+            },
+            {
+                "name": "Pipeline Qualite",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Set_Volume_Check",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PL_Oeil_Quality_Engine",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "p_ctrl_id": "@pipeline().parameters.p_ctrl_id",
+                        "p_dataset": {
+                            "value": "@activity('LK_Read_CtrlJson').output.firstRow.dataset",
+                            "type": "Expression"
+                        },
+                        "p_periodicity": {
+                            "value": "@activity('LK_Read_CtrlJson').output.firstRow.periodicity",
+                            "type": "Expression"
+                        },
+                        "p_extraction_date": {
+                            "value": "@activity('LK_Read_CtrlJson').output.firstRow.extraction_date",
+                            "type": "Expression"
+                        }
+                    }
+                }
             }
         ],
         "parameters": {
@@ -1252,8 +906,8 @@
             "p_ctrl_id": {
                 "type": "string"
             },
-            "enable_synapse_validation": {
-                "type": "bool"
+            "p_log_analytics_client_secret": {
+                "type": "secureString"
             }
         },
         "variables": {

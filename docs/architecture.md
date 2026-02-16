@@ -2,6 +2,14 @@
 
 L'ŒIL est conçu comme un **framework de contrôle** qui orchestre la qualité des données à travers l'écosystème Azure Data sans être intrusif dans les transformations métier.
 
+## Note d'architecture (mise à jour)
+
+Depuis la version actuelle, le compute Synapse est **centralisé dans** `PL_Oeil_Quality_Engine`.
+
+- `PL_Ctrl_To_Vigie` orchestre le run CTRL/ADF puis déclenche le pipeline qualité.
+- Les validations Synapse (`ROW_COUNT`, `MIN_MAX`) et la consolidation Synapse SLA/coût sont faites dans `PL_Oeil_Quality_Engine`.
+- L'ancien pipeline dédié de comptage partition Synapse a été retiré.
+
 ## High-Level Overview
 
 ```mermaid
@@ -40,7 +48,8 @@ graph TD
 2.  **Ingestion** : ADF copie les données.
 3.  **Validation** :
     *   ADF récupère les métriques d'exécution via KQL.
-    *   Si activé par la policy, Synapse scanne les fichiers pour valider l'intégrité (checksum, nulls).
+    *   `PL_Ctrl_To_Vigie` appelle `PL_Oeil_Quality_Engine`.
+    *   Dans `PL_Oeil_Quality_Engine`, Synapse scanne les fichiers pour valider `ROW_COUNT` et `MIN_MAX`, puis SQL met à jour SLA/coût Synapse.
 4.  **End Run** : ADF appelle `SP_Set_End_TS_OEIL`.
     *   SQL calcule la durée totale.
     *   SQL évalue les SLA (Fast/Slow/Fail) en fonction des seuils définis.
