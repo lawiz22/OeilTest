@@ -1,0 +1,16 @@
+// Main KQL query for ADF ingestion metrics (row count + start/end + duration)
+// NOTE: Replace the ctrl_id value when testing manually, or inject dynamically in ADF.
+
+ADFActivityRun
+| extend up = parse_json(UserProperties)
+| where tostring(up.p_ctrl_id) == "clients_2025-12-07_H"
+| where Status == "Succeeded"
+| extend o = parse_json(Output)
+| extend rc = tolong(o.rowsCopied)
+| where isnotnull(rc)
+| summarize
+    row_count_adf_ingestion_copie_parquet = max(rc),
+    adf_start_ts = min(Start),
+    adf_end_ts   = max(End)
+| extend adf_duration_sec = datetime_diff("second", adf_end_ts, adf_start_ts)
+| project row_count_adf_ingestion_copie_parquet, adf_start_ts, adf_end_ts, adf_duration_sec

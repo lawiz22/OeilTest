@@ -76,10 +76,21 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 	- `row_count_adf_ingestion_copie_parquet` (depuis `min_value` casté INT)
 	- `status` (depuis le `status` d'intégrité)
 
+Convention importante :
+
+- Pour le test `ROW_COUNT`, la valeur de row count est stockée dans `min_value` (convention technique actuelle).
+
 Règle de réduction (tests multiples) [Implemented]:
 
 - Si plusieurs résultats existent pour un même `ctrl_id` + `ROWCOUNT`, la procédure prend le plus récent.
 - Le choix est explicite (`TOP 1 ... ORDER BY integrity_result_id DESC`) pour éviter toute dépendance à l'ordre implicite d'insertion.
+
+## 🔒 Concurrency & Idempotence Guarantees
+
+- La PK (`ctrl_id`) protège contre les doubles insertions de run logique dans `vigie_ctrl`.
+- `SP_Set_Start_TS_OEIL` ne réécrit pas `start_ts` si déjà posé.
+- `SP_Set_End_TS_OEIL` ne réécrit pas `end_ts` si déjà posé (comportement attendu d'idempotence lifecycle).
+- `SP_Update_VigieCtrl_FromIntegrity` applique une réduction `latest` (dernier `ROWCOUNT` via `TOP 1 ... ORDER BY integrity_result_id DESC`).
 
 ## Mini diagrammes (SP critiques)
 
