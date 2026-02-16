@@ -51,6 +51,7 @@ High-level overview of components (ADF, SQL, Synapse) and data flow.
 - **[Power BI Dashboard](guides/powerbi_dashboard.md)**: Understanding the monitoring dashboard.
 - **[Design Decisions](guides/design_decisions.md)**: Rationale behind key architectural choices.
 - **[Release Checklist](guides/release_checklist.md)**: Step-by-step runbook for demo/release execution.
+- **[Demo Run End-to-End](guides/demo_run_end_to_end.md)**: Step-by-step walkthrough with screenshots.
 
 ---
 
