@@ -35,3 +35,9 @@ La version 2 ajoute une couche de validation fine sur le contenu des données, a
 | **Null Count** | Validation stricte ou tolérante du nombre de valeurs nulles dans des colonnes critiques. |
 | **Delta Previous** | Comparaison statistique avec le dernier run réussi (ex: variation brutale du row count ou de la somme de contrôle). |
 | **Policy Engine** | Moteur de règles stocké en SQL permettant d'activer/désactiver ces tests par dataset et environnement sans redéployer de code. |
+
+### Référence checksum (niveaux et garde-fous)
+
+La stratégie détaillée checksum (niveaux `LIGHT`/`STANDARD`/`STRICT`, normalisation, ordre déterministe, cas DEV/PROD) est documentée ici :
+
+- [Design Decisions — Checksum (Hash) — stratégie (en cours)](../guides/design_decisions.md#10-checksum-hash--stratégie-en-cours)

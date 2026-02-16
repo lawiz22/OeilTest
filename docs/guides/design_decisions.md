@@ -189,3 +189,116 @@ Azure Monitor / Log Analytics:
 
 👉 Azure fournit les briques.
 👉 L’ŒIL orchestre, contextualise et consolide ces briques en décision métier actionnable.
+
+## 10. Checksum (Hash) — stratégie (en cours)
+
+Cette section formalise la trajectoire checksum pour L’ŒIL. Le sujet est en cours d’industrialisation, avec montée progressive de la profondeur de contrôle.
+
+### Niveaux possibles
+
+#### Niveau 1 — Hash clé unique
+
+Exemple:
+
+`HASH(client_id)`
+
+Usage:
+
+- Détection d’ajout/suppression de clés
+- Contrôle léger à faible coût
+
+#### Niveau 2 — Hash colonnes critiques
+
+Exemple:
+
+`HASH(client_id + statut + pays)`
+
+Usage:
+
+- Validation métier ciblée
+- Détection de dérives sur attributs sensibles
+
+#### Niveau 3 — Hash ligne complète
+
+Exemple:
+
+`HASH(CONCAT_WS('|', col1, col2, col3, col4))`
+
+Usage:
+
+- Intégrité forte au niveau enregistrement
+- Détection d’altérations non visibles par rowcount/min-max
+
+#### Niveau 4 — Hash dataset complet ordonné
+
+Exemple:
+
+`HASH_AGG(row_hash ORDER BY key)`
+
+Usage:
+
+- Garantie forte d’identité dataset
+- Validation globale de non-altération entre deux états
+
+### Cas pratiques pour L’ŒIL
+
+#### En DEV
+
+- Checksum ligne complète
+- Fréquence `DAILY`
+- Synapse autorisé
+
+#### En PROD
+
+- Checksum clé unique `DAILY`
+- Checksum ligne complète `WEEKLY`
+- Activation pilotée par policy
+
+### Points critiques (implémentation)
+
+#### 1) Normalisation obligatoire
+
+Avant hash, appliquer systématiquement:
+
+- `NULL` → chaîne vide
+- `TRIM`
+- format date ISO
+- format décimal stable
+- `UPPER()` sur les textes métier si nécessaire
+
+Sans normalisation stricte, risque élevé de faux positifs.
+
+#### 2) Ordre déterministe
+
+Toujours imposer:
+
+`ORDER BY primary_key`
+
+Sans ordre stable, le hash agrégé peut varier à contenu identique.
+
+#### 3) Types flottants
+
+Les `FLOAT` peuvent varier légèrement selon moteur/conversion.
+
+Toujours caster en chaîne formatée fixe avant calcul du hash.
+
+### Positionnement policy dans L’ŒIL
+
+Pattern recommandé: 3 niveaux de policy sélectionnables par dataset/environnement.
+
+| Level | Type | Fréquence |
+|---|---|---|
+| `LIGHT` | Key hash | `DAILY` |
+| `STANDARD` | Critical columns hash | `DAILY` |
+| `STRICT` | Full row hash | `WEEKLY` |
+
+La policy choisit dynamiquement le niveau selon criticité, coût et fréquence cible.
+
+### Comparaison stratégique des contrôles
+
+| Contrôle | Détecte ajout | Détecte modification | Détecte corruption |
+|---|---|---|---|
+| Rowcount | ✅ | ❌ | ❌ |
+| Min/Max | ❌ | partiel | ❌ |
+| Checksum clé | ✅ | ❌ | ✅ |
+| Checksum ligne | ✅ | ✅ | ✅ |
