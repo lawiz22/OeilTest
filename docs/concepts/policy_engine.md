@@ -2,6 +2,9 @@
 
 Le modèle de gouvernance de L'ŒIL est **SQL-first**. Les règles de qualité sont définies dans des tables de référence et exportées en JSON pour l'audit.
 
+Les règles sont résolues dynamiquement à l'exécution par `PL_Oeil_Quality_Engine`.
+Aucune règle n’est codée en dur dans les pipelines.
+
 ## Marquage audit
 
 - **[Implemented]** : comportement déjà observé dans les pipelines/queries.

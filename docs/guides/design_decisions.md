@@ -25,12 +25,12 @@ L'ŒIL a été conçu avec des contraintes spécifiques de coût, traçabilité 
 
 Ce comparatif sert de référence stratégique pour choisir la bonne méthode de validation selon le contexte dataset/environnement.
 
-| Méthode | Coût | Complexité | Latence |
-|---|---|---|---|
-| SQL External Table | 💲 faible | simple | rapide |
-| Synapse Serverless | 💲 variable | moyen | moyen |
-| Synapse Dedicated | 💲💲💲 | élevé | rapide |
-| Spark Notebook | 💲💲 | plus lourd | plus lent |
+| Méthode | Coût | Complexité | Latence | Usage recommandé |
+|---|---|---|---|---|
+| SQL External Table | 💲 faible | simple | rapide | Tests simples |
+| Synapse Serverless | 💲 variable | moyen | moyen | Validations ciblées |
+| Synapse Dedicated | 💲💲💲 | élevé | rapide | Workloads critiques |
+| Spark Notebook | 💲💲 | plus lourd | plus lent | Analytics avancé |
 
 ### Architecture mature (pattern cible)
 
@@ -95,3 +95,21 @@ Le comportement du framework doit s'adapter au cycle de vie du développement.
 *   **Compute contrôlé** : Usage de Synapse restreint pour maîtriser la facture cloud.
 *   **Pas d’effet sur la performance métier** : Les contrôles ne doivent pas retarder la mise à disposition des données.
 *   **Policy adaptée** : Les seuils sont ajustés selon le comportement réel observé ("drift" naturel accepté si non critique).
+
+## 7. Chaîne décisionnelle & sémantique des statuts
+
+Chaîne de traitement cible :
+
+`Dataset → Policy → Tests autorisés → Moteur choisi → Résultat → SLA → Alert`
+
+Clarification des statuts :
+
+- `status` = statut opérationnel du run
+- `status_global` = statut consolidé
+- `alert_level` = sévérité finale
+
+## 8. Risques connus
+
+- Dépendance à la qualité du CTRL source.
+- Risque de dérive si la policy est mal configurée.
+- Coût Synapse sous-estimé si exécution multi-partitions.

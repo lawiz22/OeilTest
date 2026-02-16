@@ -74,6 +74,12 @@ Lecture opérationnelle :
 - L’**œil droit** vérifie les faits observés en exécution (ADF, Synapse, SQL).
 - La valeur de L’ŒIL est l’**écart** entre les deux, utilisé pour le statut, les SLA et les alertes.
 
+## Source of Truth Hierarchy
+
+1. `vigie_integrity_result` = atomic technical facts
+2. `vigie_ctrl` = consolidated run state
+3. `CTRL JSON` = immutable audit artifact
+
 ### Payload Hash
 Sécurité et intégrité du fichier de contrôle lui-même.
 - `payload_canonical` : Chaîne concaténée des champs critiques (`dataset|period|date|rows`).

@@ -1,5 +1,16 @@
 # 🧠 Framework Capabilities
 
+## Philosophie
+
+L’ŒIL ne corrige pas les données.
+Il mesure, qualifie et expose l’écart entre le contrat attendu et l’exécution observée.
+
+## Non-goals
+
+- L’ŒIL ne remplace pas un moteur de transformation.
+- L’ŒIL ne fait pas de data cleansing.
+- L’ŒIL ne modifie jamais les données sources.
+
 ## v1 — En production (Current)
 
 La version 1 se concentre sur l'observabilité opérationnelle, le volume et la performance (SLA).

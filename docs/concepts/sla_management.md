@@ -77,7 +77,7 @@ Pour éviter les durées incohérentes ou nulles :
 Formule de référence :
 
 $$
-	ext{cout\_estime\_cad} = \left(\frac{\text{synapse\_duration\_sec}}{60}\right) \times \text{cost\_per\_minute\_cad}
+	\text{cout\_estime\_cad} = \left(\frac{\text{synapse\_duration\_sec}}{60}\right) \times \text{cost\_per\_minute\_cad}
 $$
 
 Hypothèses minimales à documenter dans chaque environnement :
