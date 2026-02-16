@@ -6,6 +6,33 @@ L'ŒIL est un framework de contrôle qualité des données conçu pour les envir
 
 > **Mise à jour architecture** : la validation Synapse est maintenant centralisée dans `PL_Oeil_Quality_Engine` (déclenché par `PL_Ctrl_To_Vigie`). L'ancien pipeline Synapse partition dédié a été retiré.
 
+## 🎯 Pourquoi L’ŒIL existe
+
+Dans un environnement data moderne, les pipelines assurent le transport des données,
+mais très peu garantissent :
+
+- La cohérence entre couches (bronze → parquet → modèle)
+- La traçabilité SLA complète (ADF + Synapse + global)
+- La détection automatique d’anomalies volumétriques
+- La gouvernance par politiques réutilisables
+
+L’ŒIL apporte cette couche de contrôle transversale.
+
+## 👁️ Modèle conceptuel
+
+- Œil gauche : ce qui est attendu (Control File, contrat)
+- Œil droit : ce qui est exécuté (ADF, Synapse, SLA, volumes)
+
+L’ŒIL compare les deux.
+- `status` : statut technique du dernier test d'intégrité
+- `status_global` : statut global du run (`IN_PROGRESS`, `COMPLETED`)
+
+## 🧩 Vision
+
+L’ŒIL n’est pas un pipeline.
+C’est une couche de gouvernance qualité transverse,
+conçue pour devenir un standard interne.
+
 ## 🧾 Glossaire canonique (rapide)
 
 Pour uniformiser ADF + SQL + reporting, on utilise les clés canoniques suivantes :
