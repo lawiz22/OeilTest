@@ -79,6 +79,7 @@ Vue d'ensemble des composants (ADF, SQL, Synapse) et flux de données.
 ### 📖 Guides
 - **[Tableau de Bord Power BI](docs/guides/powerbi_dashboard.md)**: Comprendre les métriques.
 - **[Choix de Design](docs/guides/design_decisions.md)**: Raisons derrière l'architecture.
+- **[FAQ stratégique — Pourquoi pas un module Azure existant ?](docs/guides/design_decisions.md#9-faq-stratégique--pourquoi-ne-pas-utiliser-un-module-azure-existant)**: Réponse courte pour comités d’architecture.
 - **[Release Checklist](docs/guides/release_checklist.md)**: Runbook rapide pour les démos et exécutions complètes.
 - **[Demo Run End-to-End](docs/guides/demo_run_end_to_end.md)**: Parcours pas à pas documenté avec screenshots.
 
