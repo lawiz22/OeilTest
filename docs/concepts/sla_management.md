@@ -77,8 +77,14 @@ Pour éviter les durées incohérentes ou nulles :
 Formule de référence :
 
 $$
-	\text{cout\_estime\_cad} = \left(\frac{\text{synapse\_duration\_sec}}{60}\right) \times \text{cost\_per\_minute\_cad}
+\mathrm{C}_{\mathrm{estime,cad}} = \left(\frac{\mathrm{D}_{\mathrm{synapse,sec}}}{60}\right) \times \mathrm{R}_{\mathrm{cad/min}}
 $$
+
+Avec la correspondance :
+
+- $\mathrm{C}_{\mathrm{estime,cad}}$ = `synapse_cost_estimated_cad`
+- $\mathrm{D}_{\mathrm{synapse,sec}}$ = `synapse_duration_sec`
+- $\mathrm{R}_{\mathrm{cad/min}}$ = `synapse_cost_rate_cad_per_min`
 
 Hypothèses minimales à documenter dans chaque environnement :
 
