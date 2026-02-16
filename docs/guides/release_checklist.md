@@ -2,7 +2,14 @@
 
 Checklist opérationnelle pour exécuter une passe complète sans oublier d’étape.
 
-## 1) Pré-flight (5 min)
+Ce checklist sert autant pour une **démo exécutive** que pour un **run technique complet**.
+
+## 🎬 Demo Mode
+
+- **[Demo Required]** : étape minimale pour une démo réussie.
+- **[Optional]** : étape recommandée mais non bloquante pour une démo.
+
+## 1) Pré-flight (5 min) [Demo Required]
 
 - Vérifier que l’environnement Python est actif :
   - `\.venv2\Scripts\activate`
@@ -12,33 +19,35 @@ Checklist opérationnelle pour exécuter une passe complète sans oublier d’é
   - heure de début/fin (`st`, `se`)
   - scope correct (`banquelaw` vs `banquelaw/bronze`)
 
-## 2) Nettoyage (optionnel mais recommandé)
+## 2) Nettoyage (optionnel mais recommandé) [Optional]
+
+⚠️ **Ne jamais exécuter `delete_azure_bd.sql` en PROD.**
 
 - Local (fichiers + SQLite) :
   - `python -m python.runners.reset_oeil_environment`
 - Azure SQL (si besoin de repartir propre) :
   - exécuter [sql/delete_azure_bd.sql](../../sql/delete_azure_bd.sql)
 
-## 3) Génération des données
+## 3) Génération des données [Demo Required]
 
 - Extraction locale (CTRL + CSV + SQLite) :
   - `python -m python.runners.run_extractions`
 - Données vigie simulées (dashboard volumétrique / SLA) :
   - `python -m python.runners.run_vigie_faker`
 
-## 4) Upload Lake
+## 4) Upload Lake [Demo Required]
 
 - Copier Bronze vers ADLS :
   - `python azcopy_uploader.py`
 
-## 5) Calculs SLA / Finalisation
+## 5) Calculs SLA / Finalisation [Demo Required]
 
 - Calcul SLA :
   - `python -m python.runners.run_sla_compute`
 - Finalisation SLA + alertes :
   - `python -m python.runners.run_vigie_sla_finalize`
 
-## 6) Vérification rapide SQL (sanity checks)
+## 6) Vérification rapide SQL (sanity checks) [Demo Required]
 
 ```sql
 SELECT TOP 20 ctrl_id, expected_rows, row_count_adf_ingestion_copie_parquet, bronze_delta, parquet_delta, created_ts
@@ -54,7 +63,7 @@ FROM dbo.vigie_ctrl
 GROUP BY dataset;
 ```
 
-## 7) Vérification Power BI
+## 7) Vérification Power BI [Demo Required]
 
 - Refresh dataset/model
 - Vérifier filtres (mois/dataset)
@@ -62,7 +71,7 @@ GROUP BY dataset;
   - Volume Watch ADF
   - Volume Watch SYNAPSE
 
-## 8) Commande de secours (timeout Azure SQL sur extraction)
+## 8) Commande de secours (timeout Azure SQL sur extraction) [Optional]
 
 Si `run_extractions` échoue sur l’insert SQL de `ctrl_file_index`, lancer en mode tolérant :
 

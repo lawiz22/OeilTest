@@ -1,3 +1,9 @@
+/*
+⚠️ SAFETY WARNING
+Ne jamais exécuter ce script en PROD.
+Script réservé aux environnements de dev/test (DB attendue: testbanque).
+*/
+
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 

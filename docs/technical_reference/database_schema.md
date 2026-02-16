@@ -88,7 +88,8 @@ Indexes / contraintes notables :
 
 | Colonne | Signification | Source |
 |---|---|---|
-| `status` | Résultat du test courant remonté depuis l'engine d'intégrité | Integrity engine |
+| `status` (`vigie_ctrl`) | Lifecycle run state (`RECEIVED`, `PROCESSING`, `COMPLETED`, `FAILED`) | Orchestration ADF/SQL |
+| `status` (`vigie_integrity_result`) | Résultat d'un test d'intégrité individuel (`PASS`, `WARNING`, `FAIL`) | Integrity engine |
 | `status_global` | État global d'orchestration du pipeline | Orchestration ADF/SQL |
 | `adf_sla_status` | Verdict SLA ingestion | Métriques ADF (Log Analytics) |
 | `oeil_sla_status` | Verdict SLA orchestration OEIL | Compute SLA OEIL |
@@ -104,6 +105,36 @@ Indexes / contraintes notables :
 | `expected_rows = 0` | Statut exceptionnel (`EXPECTED_ZERO`) | Cas métier explicite, hors comparaison standard |
 
 Note : si un environnement conserve encore les buckets historiques (`OK`, `WARNING`, `ANOMALY`, `UNKNOWN`), documenter localement le mapping vers les conventions ci-dessus.
+
+#### Tables de référence (dictionnaires) [Recommended]
+
+##### `frequency`
+
+| Valeur | Signification |
+|---|---|
+| `DAILY` | Test à chaque jour d'extraction |
+| `WEEKLY` | Test hebdomadaire |
+| `MONTHLY` | Test mensuel |
+
+##### `volume_status`
+
+| Valeur | Signification |
+|---|---|
+| `OK` | Volume conforme |
+| `EMPTY` | Run valide mais dataset vide |
+| `MISSING` | Mesure absente/non disponible |
+| `WARNING` | Écart modéré |
+| `ANOMALY` | Écart critique |
+| `EXPECTED_ZERO` | Cas métier attendu (`expected_rows = 0`) |
+
+##### `sla_status`
+
+| Valeur | Signification |
+|---|---|
+| `FAST` | Durée <= attendu |
+| `SLOW` | Durée entre attendu et seuil |
+| `VERY_SLOW` | Durée > seuil |
+| `FAIL` | Échec technique/fonctionnel |
 
 ### `dbo.vigie_policy_dataset` (Policy Dataset v2)
 
@@ -283,3 +314,17 @@ Indexes / contraintes notables :
 ### TABLES ANNEXES
 
 -   Les tables métiers ci-dessus sont volontairement simples (sans PK/FK explicites dans les scripts de démo).
+
+## Archivage & rétention [Recommended]
+
+- Rétention opérationnelle en table chaude (`vigie_ctrl`, `vigie_integrity_result`) à définir par environnement (ex: 90-180 jours).
+- Archivage long terme dans ADLS via artefacts immuables (`CTRL JSON` + snapshots de policy).
+- Purge planifiée hors PROD business hours, avec contrôle de volumétrie avant/après purge.
+- Toujours tracer la fenêtre purgée (`extraction_date`, `dataset`, `rows_deleted`) dans un journal d'exploitation.
+
+## Concurrency & Idempotence [Implemented + Recommended]
+
+- **[Implemented]** : `PK_vigie_ctrl (ctrl_id)` protège l'unicité d'un run logique.
+- **[Implemented]** : procédures lifecycle idempotentes (`start_ts`/`end_ts` protégés) pour limiter les doubles écritures.
+- **[Recommended]** : sérialiser les mises à jour critiques par `ctrl_id` quand plusieurs orchestrations concurrentes sont possibles.
+- **[Recommended]** : considérer une stratégie de verrou applicatif (ou `sp_getapplock`) si contention fréquente observée.
