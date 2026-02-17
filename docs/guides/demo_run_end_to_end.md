@@ -127,7 +127,7 @@ Cette étape valide la chaîne d’orchestration event-driven ADF :
 Le `.done` joue le rôle d’accusé de réception machine-to-machine :
 
 - confirme la complétion de la phase d’ingestion/standardisation,
-- autorise les étapes aval (`PL_Ctrl_To_Vigie`, qualité, SLA, alertes),
+- autorise les étapes aval (`PL_Oeil_Guardian` puis `PL_Oeil_Core`, qualité, SLA, alertes),
 - facilite l’orchestration idempotente par événement.
 
 ### Screenshot

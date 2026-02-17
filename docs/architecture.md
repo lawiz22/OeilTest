@@ -4,11 +4,12 @@ L'ŒIL est conçu comme un **framework de contrôle** qui orchestre la qualité 
 
 ## Note d'architecture (mise à jour)
 
-Depuis la version actuelle, le compute Synapse est **centralisé dans** `PL_Oeil_Quality_Engine`.
+Depuis la version actuelle, l'orchestration est scindée en deux pipelines:
 
-- `PL_Ctrl_To_Vigie` orchestre le run CTRL/ADF puis déclenche le pipeline qualité.
-- Les validations Synapse (`ROW_COUNT`, `MIN_MAX`) et la consolidation Synapse SLA/coût sont faites dans `PL_Oeil_Quality_Engine`.
-- L'ancien pipeline dédié de comptage partition Synapse a été retiré.
+- `PL_Oeil_Guardian` prépare le run (lecture CTRL, upsert, métriques ADF), vérifie le hash canonique du CTRL et agit comme garde d'intégrité.
+- `PL_Oeil_Core` exécute le cœur qualité/SLA/alertes après validation du hash.
+- Les validations Synapse (`ROW_COUNT`, `MIN_MAX`) et la consolidation Synapse SLA/coût restent centralisées dans `PL_Oeil_Quality_Engine` (appelé depuis `PL_Oeil_Core`).
+- L'ancien pipeline `PL_Ctrl_To_Vigie` n'est plus valide.
 
 ## 👁️ Modèle conceptuel
 
@@ -59,7 +60,8 @@ graph TD
 2.  **Ingestion** : ADF copie les données.
 3.  **Validation** :
     *   ADF récupère les métriques d'exécution via KQL avec `WebActivity`.
-    *   `PL_Ctrl_To_Vigie` appelle `PL_Oeil_Quality_Engine`.
+    *   `PL_Oeil_Guardian` vérifie le hash canonique via `SP_Verify_Ctrl_Hash_V1` puis gate l'exécution.
+    *   Si le hash est valide, `PL_Oeil_Guardian` appelle `PL_Oeil_Core`, qui appelle ensuite `PL_Oeil_Quality_Engine`.
     *   Dans `PL_Oeil_Quality_Engine`, Synapse scanne les fichiers pour valider `ROW_COUNT` et `MIN_MAX`, puis SQL met à jour SLA/coût Synapse.
 4.  **End Run** : ADF appelle `SP_Set_End_TS_OEIL`.
     *   SQL calcule la durée totale.

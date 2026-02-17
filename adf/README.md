@@ -6,9 +6,11 @@ Place your ADF pipeline JSON files here, organized by pipeline name:
 
 ```
 adf/
-├── PL_Ctrl_To_Vigie.json
-├── PL_Ingest_Bronze.json
-├── PL_Validate_Integrity.json
+├── PL_Bronze_Event_Master.json
+├── PL_Bronze_To_Standardized_Parquet.json
+├── PL_Oeil_Guardian.json
+├── PL_Oeil_Core.json
+├── PL_Oeil_Quality_Engine.json
 └── ...
 ```
 

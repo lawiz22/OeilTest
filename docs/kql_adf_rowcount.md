@@ -1,6 +1,6 @@
 # Requête KQL – ADF Activity Run Metrics
 
-Requête utilisée dans le pipeline `PL_Ctrl_To_Vigie` (activité `WEB_ADF_RowCount_Copie_Parquet`)
+Requête utilisée dans le pipeline `PL_Oeil_Guardian` (activité `WEB_ADF_RowCount_Copie_Parquet`)
 pour récupérer les métriques d'ingestion ADF depuis **Log Analytics**.
 
 Source versionnée du script : [queries/kql/adf_activity_run_rowcount_main.kql](../queries/kql/adf_activity_run_rowcount_main.kql)

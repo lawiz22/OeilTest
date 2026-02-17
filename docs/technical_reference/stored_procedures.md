@@ -22,6 +22,7 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 | `SP_Compute_SLA_OEIL` | 📊 Calcul | **OEIL** | `EXECUTION_TYPE` | Appelé en interne par `SP_Set_End`, mais peut être rappelé pour recalcul. |
 | `SP_Compute_SLA_Vigie` | 📊 Calcul | **GLOBAL** | `DATASET` (futur) | Calcul SLA global par dataset (plus fin que par moteur). |
 | `SP_Update_VigieCtrl_FromIntegrity` | 🔁 Sync qualité → run | **OEIL** | — | Reprend le dernier `ROWCOUNT` de `vigie_integrity_result` et met à jour `vigie_ctrl` (timestamps/durée/status/rowcount). |
+| `SP_Verify_Ctrl_Hash_V1` | 🔒 Intégrité CTRL | **OEIL** | — | Vérifie la cohérence du hash canonique CTRL et met à jour `payload_hash_match` dans `vigie_ctrl`. |
 
 ## Parameters and Logic
 
@@ -84,6 +85,37 @@ Règle de réduction (tests multiples) [Implemented]:
 
 - Si plusieurs résultats existent pour un même `ctrl_id` + `ROWCOUNT`, la procédure prend le plus récent.
 - Le choix est explicite (`TOP 1 ... ORDER BY integrity_result_id DESC`) pour éviter toute dépendance à l'ordre implicite d'insertion.
+
+### `SP_Verify_Ctrl_Hash_V1`
+
+```sql
+@ctrl_id NVARCHAR(200)
+```
+
+Logique implémentée (V1):
+
+1. Lit `dataset`, `periodicity`, `extraction_date`, `expected_rows`, `payload_hash_sha256` depuis `dbo.vigie_ctrl`.
+2. Reconstruit `payload_canonical` au format exact:
+	- `dataset|periodicity|YYYY-MM-DD|expected_rows`
+3. Recalcule `@computed_hash` en `SHA2_256` (hex lowercase, sans préfixe `0x`) via:
+	- `HASHBYTES('SHA2_256', CAST(@payload_canonical AS VARCHAR(MAX)))`
+	- `CONVERT(VARCHAR(64), ..., 2)` puis `LOWER(...)`
+4. Compare `LOWER(@stored_hash)` au hash recalculé.
+5. Met à jour `dbo.vigie_ctrl` avec:
+	- `payload_canonical`
+	- `payload_hash_version = 1`
+	- `payload_hash_match` (`1` si match, sinon `0`)
+	- `alert_flag` (`0` si match, sinon `1`)
+	- `alert_reason` = `HASH_OK` / `CTRL_HASH_MISMATCH` / `MISSING_HASH`
+
+Contrat orchestration actuel:
+
+- Si `payload_hash_match = 1`, le run continue vers `PL_Oeil_Core`.
+- Si `payload_hash_match = 0`, le run est stoppé (`CTRL_HASH_MISMATCH`).
+
+Exemple canonique V1:
+
+`clients|Q|2026-07-01|1199`
 
 ## 🔒 Concurrency & Idempotence Guarantees
 

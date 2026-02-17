@@ -63,6 +63,55 @@ FROM dbo.vigie_ctrl
 GROUP BY dataset;
 ```
 
+### 6b) Vérification hash canonique CTRL (3 requêtes) [Demo Required]
+
+```sql
+SELECT TOP 20
+  ctrl_id,
+  payload_hash_version,
+  payload_hash_sha256,
+  payload_canonical,
+  payload_hash_match,
+  alert_flag,
+  alert_reason,
+  inserted_ts
+FROM dbo.vigie_ctrl
+ORDER BY inserted_ts DESC;
+```
+
+```sql
+SELECT
+  COUNT(*) AS total_runs,
+  SUM(CASE WHEN payload_hash_match = 1 THEN 1 ELSE 0 END) AS hash_ok_runs,
+  SUM(CASE WHEN payload_hash_match = 0 THEN 1 ELSE 0 END) AS hash_mismatch_runs,
+  SUM(CASE WHEN alert_reason = 'MISSING_HASH' THEN 1 ELSE 0 END) AS missing_hash_runs
+FROM dbo.vigie_ctrl;
+```
+
+```sql
+DECLARE @ctrl_id NVARCHAR(200) = 'clients_2026-07-01_Q';
+
+SELECT
+  v.ctrl_id,
+  v.payload_hash_sha256 AS stored_hash,
+  LOWER(CONVERT(VARCHAR(64), HASHBYTES('SHA2_256', CAST(
+    v.dataset + '|' +
+    v.periodicity + '|' +
+    CONVERT(VARCHAR(10), v.extraction_date, 23) + '|' +
+    CAST(v.expected_rows AS VARCHAR(20))
+  AS VARCHAR(MAX))), 2)) AS computed_hash,
+  v.payload_hash_match,
+  v.alert_reason
+FROM dbo.vigie_ctrl v
+WHERE v.ctrl_id = @ctrl_id;
+```
+
+Lecture rapide attendue:
+
+- `payload_hash_match = 1` et `alert_reason = HASH_OK` => contrôle hash validé.
+- `payload_hash_match = 0` et `alert_reason = CTRL_HASH_MISMATCH` => fichier CTRL potentiellement altéré.
+- `alert_reason = MISSING_HASH` => hash absent côté payload CTRL.
+
 ## 7) Vérification Power BI [Demo Required]
 
 - Refresh dataset/model
@@ -91,7 +140,7 @@ Suivi des conventions documentées comme **[Recommended]** pour passage en **[Im
 | Applicabilité fréquence tests (SKIPPED vs MISSING) | Convention doc, non persistée explicitement partout | Ajouter statut explicite côté `vigie_integrity_result` ou table de synthèse |
 | Réduction multi-tests (tous test_codes) | Implémenté pour `ROWCOUNT` via SP dédiée | Étendre règle de réduction standard à tous les tests dans les vues BI/SQL |
 | Cohérence timestamps non-réécriture | Règle documentée | Vérifier/renforcer idempotence dans SP lifecycle (`start_ts`/`end_ts`) |
-| `p_environment` transmis à Quality Engine | Paramètre par défaut utilisé depuis `PL_Ctrl_To_Vigie` | Passer `p_environment` explicitement dans `ExecutePipeline` |
+| `p_environment` transmis à Quality Engine | Paramètre par défaut utilisé depuis `PL_Oeil_Core` | Passer `p_environment` explicitement dans `ExecutePipeline` |
 | Secret Log Analytics | Secret hardcodé retiré, paramètre `secureString` ajouté | Migrer en Azure Key Vault linked service (recommandé prod) |
 
 ## 10) Issues GitHub (copier-coller)
@@ -155,7 +204,7 @@ Suivi des conventions documentées comme **[Recommended]** pour passage en **[Im
 ### Issue 5 — Passer `p_environment` explicitement au pipeline qualité
 
 **Title**
-- `adf: pass p_environment from PL_Ctrl_To_Vigie to PL_Oeil_Quality_Engine`
+- `adf: pass p_environment from PL_Oeil_Core to PL_Oeil_Quality_Engine`
 
 **Description**
 - Éviter la dépendance à la valeur par défaut du pipeline qualité.

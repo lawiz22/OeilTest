@@ -192,16 +192,13 @@ flowchart TD
 
 ---
 
-## 4. `PL_Ctrl_To_Vigie`
+## 4. `PL_Oeil_Guardian`
 
-### Rôle : Orchestration CTRL → Vigie (métriques ADF + pilotage qualité)
+### Rôle : Préparation run + garde d’intégrité CTRL
 
-Pipeline de consolidation qui lit le CTRL JSON Bronze, met à jour `dbo.vigie_ctrl`, récupère les métriques ADF, déclenche `PL_Oeil_Quality_Engine` (Synapse centralisé), puis finalise SLA/buckets/alertes.
+Pipeline d’entrée qui lit le CTRL JSON, alimente `dbo.vigie_ctrl` avec les métadonnées et métriques ADF, puis applique une garde hash canonique avant d’autoriser le cœur métier.
 
-Note de review [Implemented]:
-
-- `p_control_path` est encore déclaré mais le chemin effectif est reconstruit depuis `p_ctrl_id` dans `Set Control_Path`.
-- `p_environment` n'est pas passé explicitement au `PL_Oeil_Quality_Engine` dans cet appel (le pipeline qualité applique donc sa valeur par défaut).
+L’ancien pipeline `PL_Ctrl_To_Vigie` est retiré du design actif.
 
 ### Dépendances ADF / Log Analytics (polling) [Implemented]
 
@@ -215,44 +212,109 @@ Pour fiabiliser la récupération des métriques d'ingestion :
 
 ### Activités clés (vue simplifiée)
 
-- `LK_Read_CtrlJson`
+- `SP_Try_Start_OEIL`
+- `Set Control_Path` → `LK_Read_CtrlJson`
+- `SP_Set_Start_TS_OEIL`
+- `WEB_Get_LogAnalytics_Token` + `Until_Get_ADF_Metrics`
 - `SP_Upsert_VigieCtrl`
-- `SP_Set_Start_TS_OEIL` / `SP_Set_End_TS_OEIL`
-- `SP_SLA_Compute_ADF` / `SP_SLA_Compute_OEIL`
-- `Pipeline Qualite` → `PL_Oeil_Quality_Engine`
-- `SC_Set_Intelligent_Alert`
-- `SC_Mark_Processed_Ctrl_Index` (`ctrl_file_index.processed_flag = 1`)
+- `SP_Verify_Ctrl_Hash_V1`
+- `LK_Check_Hash_Result`
+- `If le HASH du CTRL est OK`
+	- vrai → `Execute Pipeline OEIL CORE` (`PL_Oeil_Core`)
+	- faux → `Fail CTRL_HASH_MISMATCH`
+
+### Hash canonique CTRL [Implemented]
+
+- Le pipeline appelle `SP_Verify_Ctrl_Hash_V1`.
+- La décision d’orchestration est basée sur `payload_hash_match` dans `dbo.vigie_ctrl`.
+- Si `payload_hash_match = false`, le pipeline échoue volontairement avec `CTRL_HASH_MISMATCH`.
+- Le canonical V1 vérifié est `dataset|periodicity|YYYY-MM-DD|expected_rows`.
+- Le hash recalculé utilise `SHA2_256` (hex lowercase, sans `0x`).
+- Le contrôle alimente aussi `alert_flag` et `alert_reason` (`HASH_OK`, `MISSING_HASH`, `CTRL_HASH_MISMATCH`).
 
 ### Diagramme Mermaid (flow)
 
 ```mermaid
 flowchart TD
-	A[Inputs: p_control_path, p_ctrl_id] --> B[Derived: v_control_path, v_bronze_path, v_parquet_path]
-	B --> C[LK_Read_CtrlJson]
-	C --> D[SP_Set_Start_TS_OEIL]
-	D --> E[WEB_Get_LogAnalytics_Token + Until_Get_ADF_Metrics]
-	E --> F[SP_Upsert_VigieCtrl]
-	F --> G[SC_Set_Volume_Check]
-	G --> H[Pipeline Qualite: PL_Oeil_Quality_Engine]
-	H --> I[SP_SLA_Compute_ADF]
-	I --> J[SP_Set_End_TS_OEIL]
-	J --> K[SP_SLA_Compute_OEIL]
-	K --> L[SC_Set_OEIL_Bucket]
-	L --> M[SC_Set_Intelligent_Alert]
-	M --> N[SC_Mark_OEIL_Completed]
-	N --> O[SC_Mark_Processed_Ctrl_Index]
+	A[Inputs: p_control_path, p_ctrl_id] --> B[SP_Try_Start_OEIL]
+	B --> C[Set Control_Path]
+	C --> D[LK_Read_CtrlJson]
+	D --> E[SP_Set_Start_TS_OEIL]
+	E --> F[Set v_bronze_path / v_parquet_path]
+	F --> G[WEB_Get_LogAnalytics_Token + Until_Get_ADF_Metrics]
+	G --> H[SP_Upsert_VigieCtrl]
+	H --> I[SP_Verify_Ctrl_Hash_V1]
+	I --> J[LK_Check_Hash_Result]
+	J --> K{payload_hash_match ?}
+	K -->|true| L[ExecutePipeline: PL_Oeil_Core]
+	K -->|false| M[Fail: CTRL_HASH_MISMATCH]
 
-	O --> P[(Output: dbo.vigie_ctrl)]
-	O --> Q[(Output: dbo.ctrl_file_index)]
+	L --> N[(Output: dbo.vigie_ctrl)]
 ```
 
 ### Input / Output Contract (audit)
 
 | Élément | Type | Contrat |
 |---|---|---|
-| `p_control_path` | Input | Paramètre legacy (non utilisé dans la version actuelle du flow) |
-| `p_ctrl_id` | Input | Clé de run à enrichir |
+| `p_control_path` | Input | Paramètre déclaré (chemin effectif reconstruit depuis `p_ctrl_id`) |
+| `p_ctrl_id` | Input | Clé de run à enrichir et valider |
 | `v_control_path`, `v_bronze_path`, `v_parquet_path` | Derived | Chemins techniques normalisés |
-| `PL_Oeil_Quality_Engine` | Output | Exécution qualité (Synapse uniquement dans ce pipeline) |
-| `dbo.vigie_ctrl` | Output | Run enrichi (rowcount, SLA, bucket, alert) |
+| `row_count_adf_ingestion_copie_parquet` | Derived | Métrique ingestion issue de KQL |
+| `payload_canonical`, `payload_hash_sha256`, `payload_hash_version` | Input (CTRL) | Valeurs lues du CTRL JSON |
+| `payload_hash_match` | Output | Résultat booléen de validation hash canonique |
+| `PL_Oeil_Core` | Output | Exécution autorisée seulement si hash valide |
+| `dbo.vigie_ctrl` | Output | Run enrichi (ADF + hash + lifecycle) |
+
+---
+
+## 5. `PL_Oeil_Core`
+
+### Rôle : Cœur qualité / SLA / alertes
+
+Sous-pipeline appelé par `PL_Oeil_Guardian` après validation hash. Il enchaîne les calculs volumétriques, l’exécution qualité, les SLA et la consolidation des alertes.
+
+### Activités clés (vue simplifiée)
+
+- `LK_Read_CtrlJson`
+- `SC_Set_Volume_Check`
+- `Pipeline Qualite` → `PL_Oeil_Quality_Engine`
+- `SC_Update_In_Progress`
+- `SP_SLA_Compute_ADF`
+- `SP_Set_End_TS_OEIL`
+- `SP_SLA_Compute_OEIL`
+- `SC_Set_OEIL_Bucket`
+- `SC_Set_Intelligent_Alert`
+- `SC_Ajuste Alert FLAG`
+- `SC_Mark_OEIL_Completed`
+- `SC_Mark_Processed_Ctrl_Index`
+
+### Diagramme Mermaid (flow)
+
+```mermaid
+flowchart TD
+	A[Input: p_ctrl_id] --> B[LK_Read_CtrlJson]
+	B --> C[SC_Set_Volume_Check]
+	C --> D[Pipeline Qualite: PL_Oeil_Quality_Engine]
+	D --> E[SC_Update_In_Progress]
+	E --> F[SP_SLA_Compute_ADF]
+	F --> G[SP_Set_End_TS_OEIL]
+	G --> H[SP_SLA_Compute_OEIL]
+	H --> I[SC_Set_OEIL_Bucket]
+	I --> J[SC_Set_Intelligent_Alert]
+	J --> K[SC_Ajuste Alert FLAG]
+	K --> L[SC_Mark_OEIL_Completed]
+	L --> M[SC_Mark_Processed_Ctrl_Index]
+
+	M --> N[(Output: dbo.vigie_ctrl)]
+	M --> O[(Output: dbo.ctrl_file_index)]
+```
+
+### Input / Output Contract (audit)
+
+| Élément | Type | Contrat |
+|---|---|---|
+| `p_ctrl_id` | Input | Clé de run à finaliser |
+| `LK_Read_CtrlJson` | Derived | Dataset/periodicity/extraction_date utilisés pour exécuter la qualité |
+| `PL_Oeil_Quality_Engine` | Output | Exécution qualité Synapse pilotée par policy |
+| `dbo.vigie_ctrl` | Output | Run enrichi (volume status, SLA, bucket, alert, status_global) |
 | `dbo.ctrl_file_index` | Output | Flag `processed_flag=1`, `processed_ts` |
