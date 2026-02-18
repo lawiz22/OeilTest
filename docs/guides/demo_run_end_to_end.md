@@ -121,6 +121,7 @@ Cette étape valide la chaîne d’orchestration event-driven ADF :
 
 - Après la conversion Parquet, le pipeline dépose un fichier `{ctrl_id}.done`.
 - Ce fichier signale la fin technique du traitement de la partition Bronze/Standardized.
+- Le payload `.done` contient aussi `bronze_run_id` (run ADF) pour corrélation KQL précise.
 
 ### Interprétation métier
 
@@ -128,6 +129,7 @@ Le `.done` joue le rôle d’accusé de réception machine-to-machine :
 
 - confirme la complétion de la phase d’ingestion/standardisation,
 - autorise les étapes aval (`PL_Oeil_Guardian` puis `PL_Oeil_Core`, qualité, SLA, alertes),
+- permet un pointage KQL fiable sur le run exact via `p_pipeline_run_id` (anti-collision retry/fail),
 - facilite l’orchestration idempotente par événement.
 
 ### Screenshot

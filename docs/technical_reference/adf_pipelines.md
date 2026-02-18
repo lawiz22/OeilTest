@@ -56,24 +56,31 @@ Extraction des segments du `folderPath` pour déterminer :
 ## 2. `PL_Bronze_To_Standardized_Parquet`
 
 ### Rôle : Transformation CSV → Parquet
-Pipeline de transformation appelé par `PL_Bronze_Event_Master`. Convertit les CSV du lake Bronze en Parquet standardisé, puis écrit un fichier `.done` comme signal de complétion.
+Pipeline de transformation appelé par `PL_Bronze_Event_Master`. Convertit les CSV du lake Bronze en Parquet standardisé, puis écrit un fichier `.done` JSON contenant le `bronze_run_id` pour un pointage KQL robuste.
 
-![Flux de transformation](../screenshots/adf_pl_bronze_to_standardized_parquet.png)
+![Flux de transformation v2](../screenshots/adf_pl_bronze_to_standardized_parquet_v2_canvas.png)
 
 ### Flux
 
-1.  **Start Run** : Appelle `SP_Set_Start_TS_OEIL` pour marquer le début du run dans SQL.
-2.  **Copy Data** : Copie les données brutes CSV vers le conteneur `standardized` au format Parquet (avec compression Snappy).
-3.  **Validation (Optionnelle)** : Vérifie le succès de la copie (row count vs rows copied).
-4.  **End Run** : Appelle `SP_Set_End_TS_OEIL` pour clore le run et calculer le SLA.
-5.  **Signal Done** : Dépose un fichier `{ctrl_id}.done` à côté du fichier de contrôle Bronze.
+1.  **Build Done Payload** : `V_Payload_ID_Oeil` construit un JSON:
+	 - `bronze_run_id = pipeline().RunId`
+	 - `ctrl_id = pipeline().parameters.p_ctrl_id`
+	 - `completed_ts = utcNow()`
+2.  **Copy Data** : `Bronze To Standard` copie les CSV Bronze vers Parquet standardisé.
+	 - `userProperties` transportés: `p_ctrl_id` et `p_pipeline_run_id`.
+3.  **Create Done File** : `WEB_Create_DONE` crée `.../bronze/control/oeil_done/{ctrl_id}.done` (ADLS Gen2 REST, MSI).
+4.  **Append Payload** : `WEB_Append_DONE` écrit le JSON dans le fichier `.done`.
+5.  **Flush File** : `WEB_Flush_DONE` finalise le fichier avec la longueur exacte du payload.
+
+Résultat clé: le `p_pipeline_run_id` déposé dans `.done` permet d'interroger Log Analytics sur le run exact (`ADFActivityRun`) même en cas de retry/fail intermédiaire.
 
 ### Activités Clés
 
--   `Copy_Bronze_To_Standardized` : Activité de copie principale.
--   `SP_Set_Start_TS_OEIL` : Appel stored procedure SQL.
--   `SP_Set_End_TS_OEIL` : Appel stored procedure SQL.
--   `Copy_Done_File` : Activité de copie de template `.done`.
+-   `V_Payload_ID_Oeil` : Compose le payload JSON `.done`.
+-   `Bronze To Standard` : Activité de copie principale CSV → Parquet (`CopyBehavior = MergeFiles`).
+-   `WEB_Create_DONE` : Crée le fichier `.done` via API ADLS (`PUT`, MSI).
+-   `WEB_Append_DONE` : Append le payload JSON (`PATCH action=append`).
+-   `WEB_Flush_DONE` : Flush le payload (`PATCH action=flush`).
 
 ### Input / Output Contract (audit)
 
@@ -81,9 +88,33 @@ Pipeline de transformation appelé par `PL_Bronze_Event_Master`. Convertit les C
 |---|---|---|
 | `p_table` (`p_dataset`), `p_period` (`p_periodicity`), `p_year`, `p_month`, `p_day` | Input | Identité partition source Bronze |
 | `p_ctrl_id` | Input | Identifiant run propagé |
+| `enable_synapse_validation` | Input | Paramètre booléen présent (non utilisé dans ce pipeline) |
 | `DS_Bronze_CSV` | Input | Source CSV Bronze partitionnée |
 | `DS_Standardized_Parquet` | Output | Données standardisées en Parquet |
-| `{ctrl_id}.done` | Output | Signal de complétion en dossier control Bronze |
+| `p_pipeline_run_id` (userProperty) | Derived | `pipeline().RunId` pour corrélation KQL |
+| `v_done_payload` | Derived | JSON `.done` avec `bronze_run_id`, `ctrl_id`, `completed_ts` |
+| `{ctrl_id}.done` | Output | Fichier JSON en `bronze/control/oeil_done/` |
+
+### Screenshots recommandés (ce pipeline)
+
+1. Canvas pipeline (ordre des activités)
+	- `docs/screenshots/adf_pl_bronze_to_standardized_parquet_v2_canvas.png`
+2. Activité `Bronze To Standard` (onglet `User properties` montrant `p_ctrl_id` + `p_pipeline_run_id`)
+	- `docs/screenshots/adf_pl_bronze_to_standardized_parquet_v2_userprops.png`
+
+![Bronze To Standard — User properties (p_ctrl_id, p_pipeline_run_id)](../screenshots/adf_pl_bronze_to_standardized_parquet_v2_userprops.png)
+3. Activités `.done` (`WEB_Create_DONE` → `WEB_Append_DONE` → `WEB_Flush_DONE`) avec statuts `Succeeded`
+	- `docs/screenshots/adf_pl_bronze_to_standardized_parquet_v2_done_web_chain.png`
+
+![Chaîne .done — WEB_Create_DONE, WEB_Append_DONE, WEB_Flush_DONE](../screenshots/adf_pl_bronze_to_standardized_parquet_v2_done_web_chain.png)
+
+### Exemple réel de payload `.done`
+
+```json
+{"bronze_run_id":"6048574b-da8f-4dff-a305-8ff6b4899659","ctrl_id":"transactions_2026-08-04_Q","completed_ts":"2026-02-18T19:13:02.6002697Z"}
+```
+
+Ce payload est la source de corrélation entre le run Bronze et la requête KQL (`p_pipeline_run_id`).
 
 ---
 
@@ -209,6 +240,7 @@ Pour fiabiliser la récupération des métriques d'ingestion :
 - Retry activité : `0` (pas de retry ADF natif sur cette étape).
 - Backoff : fixe via `Wait 30 sec` tant que la métrique n'est pas disponible.
 - Critère de métrique ADF valide : `row_count_adf_ingestion_copie_parquet` non nul (avec `adf_start_ts`, `adf_end_ts`, `adf_duration_sec` issus de la même requête KQL).
+- La requête KQL cible désormais `UserProperties.p_pipeline_run_id` (run id déposé dans le `.done`) pour pointer le run exact et éviter les collisions en cas de retry.
 
 ### Activités clés (vue simplifiée)
 
