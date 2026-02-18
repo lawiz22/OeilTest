@@ -9,7 +9,6 @@ Depuis la version actuelle, l'orchestration est scindée en deux pipelines:
 - `PL_Oeil_Guardian` prépare le run (lecture CTRL, upsert, métriques ADF), vérifie le hash canonique du CTRL et agit comme garde d'intégrité.
 - `PL_Oeil_Core` exécute le cœur qualité/SLA/alertes après validation du hash.
 - Les validations Synapse (`ROW_COUNT`, `MIN_MAX`) et la consolidation Synapse SLA/coût restent centralisées dans `PL_Oeil_Quality_Engine` (appelé depuis `PL_Oeil_Core`).
-- L'ancien pipeline `PL_Ctrl_To_Vigie` n'est plus valide.
 
 ## 👁️ Modèle conceptuel
 
