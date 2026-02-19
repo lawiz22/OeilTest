@@ -275,6 +275,39 @@ Cas analysé: `transactions_2026-03-01_Q`.
 - Le moteur d’alerte reflète bien ce scénario : `alert_level = CRITICAL` avec raison explicable.
 - Les autres contrôles (`clients_2026-03-01_Q`, `clients_2026-03-02_Q`, `transactions_2026-03-02_Q`) restent `COMPLETED` et `NO_ALERT`.
 
+### Résultats finaux (vue verticale multi-runs)
+
+Annexe complète (toutes les colonnes, toutes les valeurs):
+- [Snapshot complet `vigie_ctrl` (annexe)](demo_run_end_to_end_vigie_ctrl_full_snapshot.md)
+
+| Champ | clients_2026-03-01_Q | clients_2026-03-02_Q | clients_2026-03-03_Q | transactions_2026-03-01_Q | transactions_2026-03-02_Q | transactions_2026-03-03_Q |
+|---|---|---|---|---|---|---|
+| `dataset` | `clients` | `clients` | `clients` | `transactions` | `transactions` | `transactions` |
+| `periodicity` | `Q` | `Q` | `Q` | `Q` | `Q` | `Q` |
+| `extraction_date` | `2026-03-01` | `2026-03-02` | `2026-03-03` | `2026-03-01` | `2026-03-02` | `2026-03-03` |
+| `expected_rows` | `1147` | `921` | `1178` | `1176` | `873` | `1567` |
+| `bronze_rows` | `1147` | `921` | `1178` | `1176` | `873` | `1515` |
+| `parquet_rows` | `1147` | `921` | `1178` | `1176` | `873` | `1515` |
+| `bronze_delta` | `0` | `0` | `0` | `0` | `0` | `-52` |
+| `parquet_delta` | `0` | `0` | `0` | `0` | `0` | `-52` |
+| `bronze_status` | `OK` | `OK` | `OK` | `OK` | `OK` | `MISMATCH` |
+| `parquet_status` | `OK` | `OK` | `OK` | `OK` | `OK` | `MISMATCH` |
+| `status_global` | `COMPLETED` | `COMPLETED` | `COMPLETED` | `COMPLETED` | `COMPLETED` | `COMPLETED` |
+| `duration_sec` | `270` | `265` | `246` | `864` | `275` | `4243` |
+| `sla_status` | `OK` | `OK` | `OK` | `FAIL` | `OK` | `FAIL` |
+| `volume_status` | `OK` | `OK` | `OK` | `OK` | `OK` | `ANOMALY` |
+| `sla_bucket` | `FAST` | `FAST` | `FAST` | `VERY_SLOW` | `FAST` | `VERY_SLOW` |
+| `row_count_adf_ingestion_copie_parquet` | `1147` | `921` | `1178` | `1176` | `873` | `1515` |
+| `adf_duration_sec` | `17` | `16` | `15` | `18` | `17` | `17` |
+| `synapse_duration_sec` | `29` | `16` | `23` | `14` | `14` | `19` |
+| `oeil_sla_status` | `OK` | `OK` | `OK` | `FAIL` | `OK` | `FAIL` |
+| `synapse_sla_status` | `OK` | `OK` | `OK` | `OK` | `OK` | `OK` |
+| `alert_flag` | `0` | `0` | `0` | `1` | `0` | `1` |
+| `alert_level` | `NO_ALERT` | `NO_ALERT` | `NO_ALERT` | `CRITICAL` | `NO_ALERT` | `CRITICAL` |
+| `alert_reason` | `NO_ALERT` | `NO_ALERT` | `NO_ALERT` | `OEIL=FAIL \| BUCKET=VERY_SLOW \| VOLUME=OK \| ADF=OK \| SYNAPSE=OK` | `NO_ALERT` | `OEIL=FAIL \| BUCKET=VERY_SLOW \| VOLUME=ANOMALY \| ADF=OK \| SYNAPSE=OK` |
+| `synapse_cost_estimated_cad` | `0.000967` | `0.000533` | `0.000767` | `0.000467` | `0.000467` | `0.000633` |
+| `payload_hash_match` | `1` | `1` | `1` | `1` | `1` | `1` |
+
 ### Dictionnaire complet des champs (`vigie_ctrl`)
 
 - `ctrl_id`: identifiant unique du contrôle (dataset + date + périodicité).
