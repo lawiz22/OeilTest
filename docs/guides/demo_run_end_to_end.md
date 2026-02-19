@@ -2,51 +2,49 @@
 
 Documentation pas à pas d’un run de démonstration L’ŒIL, avec screenshots.
 
-## Étape 1 — Extraction Python (3 jours, dataset `clients`, chaos 20%)
+## Étape 1 — Run extraction simulé (source externe type DataStage via Control-M)
 
 ### Contexte
 
-- Exécution de `python/runners/run_extractions.py`
-- Dataset: `clients`
-- Fenêtre: 3 jours
-- Bruit chaotique (variance): **20%**
+- Exécution de `python/runners/run_extractions.py` avec `config/run_extractions.json`.
+- Simulation d'une extraction amont externe (ex: DataStage orchestré par Control-M).
+- Datasets: `transactions` et `clients`.
+- Fenêtre de démonstration: du `2026-03-01` au `2026-03-02` (périodicité `Q`).
 
 ### Interprétation métier
 
-Cette étape simule l’**œil gauche** (source/contrat, ex: DataStage ou autre système amont) via les programmes Python.
-
-Avec 20% de bruit, le résultat source simulé peut diverger de la première ingestion attendue. C’est volontaire pour démontrer la capacité de L’ŒIL à détecter et qualifier les écarts.
+Cette étape représente l’**œil gauche** (la source amont et le contrat de livraison). On valide ici que l'extraction simulée produit correctement les jeux attendus avant le transfert vers le lake.
 
 ### Lecture du log (screenshot)
 
-- `actual` = volume réellement généré côté simulation source
-- `expected` = volume de référence attendu
-- `[WARN] VARIANCE` = écart volontaire injecté (cas de test)
-- `min` / `max` = bornes du jeu généré
+- `[OK] SQLite schema ensured` confirme que l'environnement local de démo est prêt.
+- Chaque ligne `transactions|...` / `clients|...` correspond à un `ctrl_id` candidat pour l'orchestration ADF.
+- `actual = expected` indique une génération cohérente (cas de base sans anomalie injectée).
+- `min` / `max` donnent les bornes des valeurs générées pour le dataset.
 
 ### Screenshot
 
-> Fichier attendu: `docs/screenshots/demo_step1_extraction_clients_3jours_chaos20.png`
+> Fichier: `docs/screenshots/demo_v2_step1_run_extractions_external_simulation.png`
 
-![Étape 1 — Extraction clients 3 jours chaos 20%](../screenshots/demo_step1_extraction_clients_3jours_chaos20.png)
+![Étape 1 — Run extractions simulé (source externe)](../screenshots/demo_v2_step1_run_extractions_external_simulation.png)
 
 ---
 
-## Étape 2 — Push simulé DataStage/SFTP vers le lake (AzCopy)
+## Étape 2 — Push simulé vers le lake (AzCopy)
 
 ### Contexte
 
-- Exécution de `azcopy_uploader.py`
-- Simulation du transfert amont (DataStage/SFTP) vers ADLS Bronze
-- Résultat observé: job `Completed`, transferts fichiers = OK
+- Exécution de `azcopy_uploader.py`.
+- Cette étape simule la livraison des fichiers extraits vers ADLS Bronze depuis un système amont.
+- Résultat attendu: job AzCopy terminé avec transferts complétés et aucun échec.
 
 ### Interprétation métier
 
-Cette étape simule l’arrivée des artefacts source dans le lake.
+Cette étape valide le passage entre le système d'extraction amont et le stockage technique Azure:
 
-- Le pipeline amont dépose les fichiers attendus en Bronze.
-- L’upload réussi confirme que le run peut passer à l’orchestration ADF.
-- À ce stade, on valide la disponibilité des entrées, pas encore la qualité métier.
+- les fichiers sont effectivement déposés en Bronze,
+- l’orchestration ADF peut démarrer sur des entrées présentes,
+- la qualité métier sera évaluée plus tard dans `PL_Oeil_Guardian` puis `PL_Oeil_Core`.
 
 ### Lecture du log (screenshot)
 
@@ -56,9 +54,9 @@ Cette étape simule l’arrivée des artefacts source dans le lake.
 
 ### Screenshot
 
-> Fichier: `docs/screenshots/demo_step2_azcopy_push_lake.png`
+> Fichier: `docs/screenshots/demo_v2_step2_azcopy_push_to_lake.png`
 
-![Étape 2 — Push AzCopy vers le lake](../screenshots/demo_step2_azcopy_push_lake.png)
+![Étape 2 — Push AzCopy vers ADLS Bronze](../screenshots/demo_v2_step2_azcopy_push_to_lake.png)
 
 ---
 
@@ -85,104 +83,105 @@ Cette étape matérialise le lien entre le dépôt physique des fichiers et l’
 
 ---
 
-## Étape 3 — Détection Blob + orchestration `Master -> To_Standardized_Parquet`
+## Étape 3 — Détection Blob et démarrage des pipelines d’ingestion principaux
 
 ### Contexte
 
-- Le trigger Blob détecte l'arrivée des fichiers Bronze.
-- `PL_Bronze_Event_Master` est déclenché automatiquement.
-- Ce pipeline déclenche `PL_Bronze_To_Standardized_Parquet` pour convertir en Parquet.
+- Le trigger Blob détecte l'arrivée des nouveaux fichiers Bronze.
+- `PL_Bronze_Event_Master` démarre automatiquement.
+- L'orchestration d'ingestion lance ensuite `PL_Bronze_To_Standardized_Parquet`.
 
 ### Interprétation métier
 
-Cette étape valide la chaîne d’orchestration event-driven ADF :
+Cette étape confirme que la chaîne d’ingestion ADF est bien **event-driven**:
 
-- détection automatique de nouveaux fichiers,
-- propagation du `ctrl_id` et des métadonnées de partition,
-- exécution du pipeline de standardisation sans intervention manuelle.
+- détection automatique des dépôts Bronze,
+- démarrage du pipeline principal d’ingestion,
+- enchaînement vers la standardisation sans intervention manuelle.
 
 ### Lecture du screenshot
 
-- `PL_Bronze_Event_Master` : point d’entrée déclenché par l’événement Blob.
-- `PL_Bronze_To_Standardized_Parquet` : pipeline enfant de transformation.
-- Présence de runs `Succeeded` / `In progress` selon le moment de capture.
+- `PL_Bronze_Event_Master` apparaît comme point d’entrée déclenché par le Blob event.
+- Le run de `PL_Bronze_To_Standardized_Parquet` est visible dans la chaîne d’ingestion.
+- Les états (`In progress` / `Succeeded`) confirment l’exécution réelle au moment de la capture.
 
 ### Screenshot
 
-> Fichier: `docs/screenshots/demo_step3_adf_blob_trigger_master_to_standardized.png`
+> Fichier: `docs/screenshots/demo_v2_step3_blob_detect_master_ingestion_start.png`
 
-![Étape 3 — Blob trigger et orchestration Master vers Standardized](../screenshots/demo_step3_adf_blob_trigger_master_to_standardized.png)
+![Étape 3 — Blob detect et démarrage ingestion principale](../screenshots/demo_v2_step3_blob_detect_master_ingestion_start.png)
 
 ---
 
-## Étape 4 — Dépôt du fichier `.done`
+## Étape 4 — Démarrage `PL_Oeil_Guardian` et poke ADF Log Analytics
 
 ### Contexte
 
-- Après la conversion Parquet, le pipeline dépose un fichier `{ctrl_id}.done`.
-- Ce fichier signale la fin technique du traitement de la partition Bronze/Standardized.
-- Le payload `.done` contient aussi `bronze_run_id` (run ADF) pour corrélation KQL précise.
+- `PL_Oeil_Guardian` démarre après l’ingestion Bronze → Standardized.
+- Le pipeline effectue un appel token (`WEB_Get_LogAnalytics_Token`) puis un poke KQL (`WEB_ADF_RowCount_Copie_Parquet`).
+- Objectif: récupérer les métriques du run Bronze exact via `p_pipeline_run_id`.
 
 ### Interprétation métier
 
-Le `.done` joue le rôle d’accusé de réception machine-to-machine :
+Cette étape valide la transition entre ingestion et contrôle:
 
-- confirme la complétion de la phase d’ingestion/standardisation,
-- autorise les étapes aval (`PL_Oeil_Guardian` puis `PL_Oeil_Core`, qualité, SLA, alertes),
-- permet un pointage KQL fiable sur le run exact via `p_pipeline_run_id` (anti-collision retry/fail),
-- facilite l’orchestration idempotente par événement.
+- Guardian commence l’initialisation du run `vigie_ctrl`,
+- la sonde Log Analytics confirme la disponibilité des métriques d’activité ADF,
+- ces métriques seront utilisées pour alimenter `adf_start_ts`, `adf_end_ts`, `adf_duration_sec` et le rowcount d’ingestion.
 
 ### Screenshot
 
-> Fichier: `docs/screenshots/demo_step4_done_file_deposited.png`
+> Fichier: `docs/screenshots/demo_v2_step4_guardian_start_adf_log_probe.png`
 
-![Étape 4 — Fichier done déposé](../screenshots/demo_step4_done_file_deposited.png)
+![Étape 4 — PL_Oeil_Guardian démarre et poke ADF Log](../screenshots/demo_v2_step4_guardian_start_adf_log_probe.png)
 
 ---
 
-## Étape 5 — Policy dataset (activation + autorisation Synapse)
+## Étape 5 — Déclenchement `PL_Oeil_Core` + `PL_Oeil_Quality_Engine` (avec cas d’échec Guardian)
 
 ### Contexte
 
-- Consultation de la table `dbo.vigie_policy_dataset`.
-- Vérification des flags de gouvernance par dataset/environnement.
+- On observe la séquence où Guardian enchaîne vers Core puis Quality.
+- Dans ce run, un Guardian échoue temporairement car les logs ADF ne sont pas encore disponibles au moment du poke.
+- Le symptôme est cohérent avec une latence de propagation Log Analytics.
 
 ### Interprétation métier
 
-Cette étape confirme que la policy autorise l’exécution qualité selon les règles attendues :
+Cette étape démontre un comportement opérationnel réaliste :
 
-- `is_active` détermine si le dataset est pris en compte par l’engine,
-- `synapse_allowed` décide si les contrôles Synapse peuvent être exécutés,
-- `max_synapse_cost_usd` encadre le budget potentiel.
+- la chaîne `Guardian -> Core -> Quality` est bien active,
+- un échec ponctuel peut survenir si la télémétrie ADF arrive en retard,
+- le paramètre d’attente (`Wait 60 sec`) peut être augmenté pour réduire ces faux échecs transitoires.
 
 ### Screenshot
 
-> Fichier: `docs/screenshots/demo_step5_policy_dataset_synapse_allowed_active.png`
+> Fichier: `docs/screenshots/demo_v2_step5_core_quality_trigger_guardian_log_delay.png`
 
-![Étape 5 — Policy dataset (active/synapse_allowed)](../screenshots/demo_step5_policy_dataset_synapse_allowed_active.png)
+![Étape 5 — Core/Quality déclenchés, Guardian en échec temporaire (logs ADF)](../screenshots/demo_v2_step5_core_quality_trigger_guardian_log_delay.png)
 
 ---
 
-## Étape 6 — Policy test (tests activés à exécuter)
+## Étape 6 — Reprise du run après redépôt `.done` (Guardian repasse et poursuit)
 
 ### Contexte
 
-- Consultation de `dbo.vigie_policy_test`.
-- Vérification des tests activés et de leur fréquence/seuil.
+- Action corrective appliquée: suppression du fichier `.done`, puis redépôt du `.done`.
+- Le trigger relance Guardian sur le même contexte de partition.
+- Cette fois, les logs ADF sont prêts et la chaîne poursuit normalement.
 
 ### Interprétation métier
 
-Cette étape fixe **quoi** exécuter pour le run :
+Cette étape valide la résilience du design event-driven:
 
-- `is_enabled` active/désactive un test,
-- `frequency` porte la logique d’applicabilité,
-- `threshold_value` et `column_name` paramètrent la règle.
+- la reprise est possible sans intervention lourde,
+- le redépôt `.done` rejoue le contrôle Guardian proprement,
+- le pipeline refait ensuite ce qu’il devait faire (Core/Quality/SLA/alertes).
 
 ### Screenshot
 
-> Fichier: `docs/screenshots/demo_step6_policy_test_enabled_frequency_threshold.png`
+> Fichier: `docs/screenshots/demo_v2_step6_guardian_rerun_after_done_redeposit.png`
 
-![Étape 6 — Policy test (enabled/frequency/threshold)](../screenshots/demo_step6_policy_test_enabled_frequency_threshold.png)
+![Étape 6 — Guardian relancé après redépôt done, exécution reprise](../screenshots/demo_v2_step6_guardian_rerun_after_done_redeposit.png)
 
 ---
 
