@@ -1,17 +1,17 @@
-# ✅ Release Checklist (Demo / Runbook)
+﻿# Release Checklist (Demo / Runbook)
 
-Checklist opérationnelle pour exécuter une passe complète sans oublier d’étape.
+Checklist opérationnelle pour exécuter une passe complète sans oublier d'étape.
 
 Ce checklist sert autant pour une **démo exécutive** que pour un **run technique complet**.
 
-## 🎬 Demo Mode
+## Demo Mode
 
 - **[Demo Required]** : étape minimale pour une démo réussie.
 - **[Optional]** : étape recommandée mais non bloquante pour une démo.
 
 ## 1) Pré-flight (5 min) [Demo Required]
 
-- Vérifier que l’environnement Python est actif :
+- Vérifier que l'environnement Python est actif :
   - `\.venv2\Scripts\activate`
 - Vérifier la variable SQL :
   - `echo $env:OEIL_AZURE_SQL_PASSWORD`
@@ -20,8 +20,7 @@ Ce checklist sert autant pour une **démo exécutive** que pour un **run techniq
   - scope correct (`banquelaw` vs `banquelaw/bronze`)
 
 ## 2) Nettoyage (optionnel mais recommandé) [Optional]
-
-⚠️ **Ne jamais exécuter `delete_azure_bd.sql` en PROD.**
+WARNING: **Ne jamais exécuter `delete_azure_bd.sql` en PROD.**
 
 - Local (fichiers + SQLite) :
   - `python -m python.runners.reset_oeil_environment`
@@ -122,7 +121,7 @@ Lecture rapide attendue:
 
 ## 8) Commande de secours (timeout Azure SQL sur extraction) [Optional]
 
-Si `run_extractions` échoue sur l’insert SQL de `ctrl_file_index`, lancer en mode tolérant :
+Si `run_extractions` échoue sur l'insert SQL de `ctrl_file_index`, lancer en mode tolérant :
 
 - PowerShell :
   - `$env:OEIL_CTRL_INDEX_MODE="best_effort"`
@@ -140,12 +139,16 @@ Suivi des conventions documentées comme **[Recommended]** pour passage en **[Im
 | Applicabilité fréquence tests (SKIPPED vs MISSING) | Convention doc, non persistée explicitement partout | Ajouter statut explicite côté `vigie_integrity_result` ou table de synthèse |
 | Réduction multi-tests (tous test_codes) | Implémenté pour `ROWCOUNT` via SP dédiée | Étendre règle de réduction standard à tous les tests dans les vues BI/SQL |
 | Cohérence timestamps non-réécriture | Règle documentée | Vérifier/renforcer idempotence dans SP lifecycle (`start_ts`/`end_ts`) |
-| `p_environment` transmis à Quality Engine | Paramètre par défaut utilisé depuis `PL_Oeil_Core` | Passer `p_environment` explicitement dans `ExecutePipeline` |
+| `p_environment` transmis à Quality Engine | Implémenté (propagé `Guardian` -> `Core` -> `Quality`) | Clôturé |
 | Secret Log Analytics | Secret hardcodé retiré, paramètre `secureString` ajouté | Migrer en Azure Key Vault linked service (recommandé prod) |
 
 ## 10) Issues GitHub (copier-coller)
 
-### Issue 1 — Uniformiser les flags volume (`EMPTY` / `MISSING` / `EXPECTED_ZERO`)
+Statut rapide: Issues `1,2,3,4,6` = **OPEN** ; Issue `5` = **CLOSED**.
+
+### Ouvertes
+
+### Issue 1 [OPEN] - Uniformiser les flags volume (`EMPTY` / `MISSING` / `EXPECTED_ZERO`)
 
 **Title**
 - `docs+sql: standardize volume_status values (EMPTY/MISSING/EXPECTED_ZERO)`
@@ -159,7 +162,7 @@ Suivi des conventions documentées comme **[Recommended]** pour passage en **[Im
 - Mapping BI validé.
 - Docs mises à jour si nomenclature finale différente.
 
-### Issue 2 — Fréquence policy: expliciter `SKIPPED` vs `MISSING`
+### Issue 2 [OPEN] - Fréquence policy: expliciter `SKIPPED` vs `MISSING`
 
 **Title**
 - `quality-engine: persist explicit test applicability status (SKIPPED/MISSING)`
@@ -173,7 +176,7 @@ Suivi des conventions documentées comme **[Recommended]** pour passage en **[Im
 - Règle documentée dans la policy.
 - Vérification sur un run avec tests applicables + non applicables.
 
-### Issue 3 — Réduction multi-tests généralisée
+### Issue 3 [OPEN] - Réduction multi-tests généralisée
 
 **Title**
 - `sql: generalize latest-result reduction for integrity tests`
@@ -187,7 +190,7 @@ Suivi des conventions documentées comme **[Recommended]** pour passage en **[Im
 - Pas de dépendance à l'ordre implicite d'insertion.
 - Résultat vérifié sur jeux avec doublons de tests.
 
-### Issue 4 — Idempotence timestamps lifecycle
+### Issue 4 [OPEN] - Idempotence timestamps lifecycle
 
 **Title**
 - `sql: enforce lifecycle timestamp idempotence (start_ts/end_ts)`
@@ -201,21 +204,7 @@ Suivi des conventions documentées comme **[Recommended]** pour passage en **[Im
 - Cas rerun documenté.
 - Durées OEIL/ADF/Synapse restent cohérentes.
 
-### Issue 5 — Passer `p_environment` explicitement au pipeline qualité
-
-**Title**
-- `adf: pass p_environment from PL_Oeil_Core to PL_Oeil_Quality_Engine`
-
-**Description**
-- Éviter la dépendance à la valeur par défaut du pipeline qualité.
-- Garantir le même comportement entre environnements et déploiements.
-
-**Definition of Done**
-- Paramètre transmis explicitement dans `ExecutePipeline`.
-- Validation sur au moins 2 environnements (ex: DEV/PROD).
-- Documentation I/O contract ajustée.
-
-### Issue 6 — Migrer le secret Log Analytics vers Key Vault
+### Issue 6 [OPEN] - Migrer le secret Log Analytics vers Key Vault
 
 **Title**
 - `security: replace runtime secret parameter with Azure Key Vault reference`
@@ -228,3 +217,20 @@ Suivi des conventions documentées comme **[Recommended]** pour passage en **[Im
 - Linked service Key Vault configuré.
 - Pipeline ADF consomme le secret via référence sécurisée.
 - Push Protection ne détecte plus de secret applicatif dans les JSON versionnés.
+
+### Clôturées
+
+### Issue 5 [CLOSED] - Passer `p_environment` explicitement au pipeline qualité
+
+**Title**
+- `[CLOSED] adf: pass p_environment from PL_Oeil_Core to PL_Oeil_Quality_Engine`
+
+**Description**
+- Implémenté: `p_environment` est propagé explicitement de `PL_Oeil_Guardian` vers `PL_Oeil_Core`, puis vers `PL_Oeil_Quality_Engine`.
+- Le comportement n'est plus dépendant d'une valeur par défaut implicite.
+
+**Definition of Done**
+- Paramètre transmis explicitement dans `ExecutePipeline`.
+- Documentation I/O contract ajustée.
+- Validation multi-environnements à conserver en check de release (DEV/PROD).
+

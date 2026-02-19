@@ -141,10 +141,9 @@ Pipeline d’entrée qui lit le CTRL JSON, alimente `dbo.vigie_ctrl` avec les m�
 
 Pour fiabiliser la récupération des métriques d'ingestion :
 
-- Le polling est géré par `Until_Get_ADF_Metrics`.
-- Timeout de boucle : `00:05:00`.
-- Retry activité : `0` (pas de retry ADF natif sur cette étape).
-- Backoff : fixe via `Wait 30 sec` tant que la métrique n'est pas disponible.
+- Le flux actif fait un `Wait` (60s), récupère un token (`WEB_Get_LogAnalytics_Token`), puis lance la requête KQL (`WEB_ADF_RowCount_Copie_Parquet`).
+- `If_Has_RowCount_copy1` échoue explicitement si la métrique n'est pas disponible (fail-fast).
+- La boucle `Until_Get_ADF_Metrics` est toujours présente dans le JSON mais marquée `Inactive` (fallback non utilisé).
 - Critère de métrique ADF valide : `row_count_adf_ingestion_copie_parquet` non nul (avec `adf_start_ts`, `adf_end_ts`, `adf_duration_sec` issus de la même requête KQL).
 - La requête KQL cible désormais `UserProperties.p_pipeline_run_id` (run id déposé dans le `.done`) pour pointer le run exact et éviter les collisions en cas de retry.
 
@@ -152,13 +151,15 @@ Pour fiabiliser la récupération des métriques d'ingestion :
 
 - `SP_Try_Start_OEIL`
 - `Set Control_Path` → `LK_Read_CtrlJson`
+- `LK_Read_DONE`
 - `SP_Set_Start_TS_OEIL`
-- `WEB_Get_LogAnalytics_Token` + `Until_Get_ADF_Metrics`
+- `v_bronze_path` + `v_parquet_path` + `Wait`
+- `WEB_Get_LogAnalytics_Token` + `WEB_ADF_RowCount_Copie_Parquet` + `If_Has_RowCount_copy1`
 - `SP_Upsert_VigieCtrl`
 - `SP_Verify_Ctrl_Hash_V1`
 - `LK_Check_Hash_Result`
 - `If le HASH du CTRL est OK`
-	- vrai → `Execute Pipeline OEIL CORE` (`PL_Oeil_Core`)
+	- vrai → `Execute Pipeline OEIL CORE` (`PL_Oeil_Core`) avec `p_ctrl_id`, `p_dataset`, `p_periodicity`, `p_extraction_date`, `p_environment=DEV`
 	- faux → `Fail CTRL_HASH_MISMATCH`
 
 ### Hash canonique CTRL [Implemented]
@@ -174,20 +175,25 @@ Pour fiabiliser la récupération des métriques d'ingestion :
 
 ```mermaid
 flowchart TD
-	A[Inputs: p_control_path, p_ctrl_id] --> B[SP_Try_Start_OEIL]
+	A[Inputs: p_control_path, p_ctrl_id, p_done_path] --> B[SP_Try_Start_OEIL]
 	B --> C[Set Control_Path]
 	C --> D[LK_Read_CtrlJson]
-	D --> E[SP_Set_Start_TS_OEIL]
-	E --> F[Set v_bronze_path / v_parquet_path]
-	F --> G[WEB_Get_LogAnalytics_Token + Until_Get_ADF_Metrics]
-	G --> H[SP_Upsert_VigieCtrl]
+	D --> E[LK_Read_DONE]
+	E --> F[SP_Set_Start_TS_OEIL]
+	F --> G[Set v_bronze_path / v_parquet_path]
+	G --> H[Wait + WEB_Get_LogAnalytics_Token]
+	H --> I[WEB_ADF_RowCount_Copie_Parquet]
+	I --> J{row_count non nul ?}
+	J -->|non| K[Fail ADF LOG TROP LONG]
+	J -->|oui| L[SP_Upsert_VigieCtrl]
+	L --> M[SP_Verify_Ctrl_Hash_V1]
+	M --> N[LK_Check_Hash_Result]
+	N --> O{payload_hash_match ?}
+	O -->|true| P[ExecutePipeline: PL_Oeil_Core]
+	O -->|false| Q[Fail: CTRL_HASH_MISMATCH]
 	H --> I[SP_Verify_Ctrl_Hash_V1]
-	I --> J[LK_Check_Hash_Result]
-	J --> K{payload_hash_match ?}
-	K -->|true| L[ExecutePipeline: PL_Oeil_Core]
-	K -->|false| M[Fail: CTRL_HASH_MISMATCH]
 
-	L --> N[(Output: dbo.vigie_ctrl)]
+	P --> R[(Output: dbo.vigie_ctrl)]
 ```
 
 ### Input / Output Contract (audit)
@@ -196,11 +202,13 @@ flowchart TD
 |---|---|---|
 | `p_control_path` | Input | Paramètre déclaré (chemin effectif reconstruit depuis `p_ctrl_id`) |
 | `p_ctrl_id` | Input | Clé de run à enrichir et valider |
+| `p_done_path` | Input | Chemin du `.done` utilisé par `LK_Read_DONE` pour lire `bronze_run_id` |
+| `p_bronze_run_id` | Input | Paramètre déclaré (non utilisé dans le flux implémenté) |
 | `v_control_path`, `v_bronze_path`, `v_parquet_path` | Derived | Chemins techniques normalisés |
 | `row_count_adf_ingestion_copie_parquet` | Derived | Métrique ingestion issue de KQL |
 | `payload_canonical`, `payload_hash_sha256`, `payload_hash_version` | Input (CTRL) | Valeurs lues du CTRL JSON |
 | `payload_hash_match` | Output | Résultat booléen de validation hash canonique |
-| `PL_Oeil_Core` | Output | Exécution autorisée seulement si hash valide |
+| `PL_Oeil_Core` | Output | Exécution autorisée si hash valide, avec paramètres métier (`dataset`, `periodicity`, `extraction_date`, `environment`) |
 | `dbo.vigie_ctrl` | Output | Run enrichi (ADF + hash + lifecycle) |
 
 ---
@@ -210,6 +218,8 @@ flowchart TD
 ### Rôle : Cœur qualité / SLA / alertes
 
 Sous-pipeline appelé par `PL_Oeil_Guardian` après validation hash. Il enchaîne les calculs volumétriques, l’exécution qualité, les SLA et la consolidation des alertes.
+
+Le pipeline reçoit désormais des paramètres enrichis (`p_dataset`, `p_periodicity`, `p_extraction_date`, `p_environment`) en plus de `p_ctrl_id`.
 
 ### Activités clés (vue simplifiée)
 
@@ -230,10 +240,11 @@ Sous-pipeline appelé par `PL_Oeil_Guardian` après validation hash. Il enchaîn
 
 ```mermaid
 flowchart TD
-	A[Input: p_ctrl_id] --> B[LK_Read_CtrlJson]
-	B --> C[SC_Set_Volume_Check]
-	C --> D[Pipeline Qualite: PL_Oeil_Quality_Engine]
-	D --> E[SC_Update_In_Progress]
+	A[Input: p_ctrl_id + contexte métier] --> B[Set Control_Path]
+	B --> C[LK_Read_CtrlJson]
+	C --> D[SC_Set_Volume_Check]
+	D --> E[Pipeline Qualite: PL_Oeil_Quality_Engine]
+	E --> F[SC_Update_In_Progress]
 	E --> F[SP_SLA_Compute_ADF]
 	F --> G[SP_Set_End_TS_OEIL]
 	G --> H[SP_SLA_Compute_OEIL]
@@ -252,6 +263,7 @@ flowchart TD
 | Élément | Type | Contrat |
 |---|---|---|
 | `p_ctrl_id` | Input | Clé de run à finaliser |
+| `p_dataset`, `p_periodicity`, `p_extraction_date`, `p_environment` | Input | Paramètres déclarés et fournis par `PL_Oeil_Guardian` |
 | `LK_Read_CtrlJson` | Derived | Dataset/periodicity/extraction_date utilisés pour exécuter la qualité |
 | `PL_Oeil_Quality_Engine` | Output | Exécution qualité Synapse pilotée par policy |
 | `dbo.vigie_ctrl` | Output | Run enrichi (volume status, SLA, bucket, alert, status_global) |
@@ -301,6 +313,7 @@ Pipeline de contrôle qualité piloté par policy SQL. Il lit les tests actifs p
 	 - Cas `ROW_COUNT`
 		 - `SC_SYNAPSE_ROWCOUNT` → `EXEC ctrl.SP_OEIL_ROWCOUNT ...`
 		 - `SP_Insert_Vigie_ROWCOUNT` → `EXEC dbo.SP_Insert_VigieIntegrityResult ...`
+		 - `synapse_start_ts` / `synapse_end_ts` sont persistés au moment de l'insert `ROW_COUNT`
 7. **`SP_Update_VigieCtrl_FromIntegrity`**
 	 - Synchronise les résultats `ROW_COUNT` d'intégrité vers `dbo.vigie_ctrl`
 	 - Alimente `synapse_start_ts`, `synapse_end_ts`, `synapse_duration_sec`, `row_count_adf_ingestion_copie_parquet`, `status`
