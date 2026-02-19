@@ -208,7 +208,7 @@ Cette étape définit **la nature** des tests exécutables :
 
 ---
 
-## Étape 8 — Résultats d’intégrité persistés (`vigie_integrity_result`)
+## Étape 8 — Résultats d’intégrité (`vigie_integrity_result`)
 
 ### Contexte
 
@@ -217,7 +217,7 @@ Cette étape définit **la nature** des tests exécutables :
 
 ### Interprétation métier
 
-Cette étape matérialise le “résultat magique” du run qualité:
+Cette étape matérialise le résultat du run qualité :
 
 - une ligne par test exécuté (`ROW_COUNT`, `MIN_MAX`),
 - statut de test (`PASS`/`FAIL`) visible immédiatement,
@@ -227,7 +227,7 @@ Note importante : pour `ROW_COUNT`, la valeur de comptage est stockée dans `min
 
 ### Lecture du screenshot
 
-- Plusieurs `ctrl_id` sur 3 jours (`2026-07-01` à `2026-07-03`) sont présents.
+- Plusieurs `ctrl_id` de la démo sont présents sur la fenêtre d’exécution.
 - Les tests `ROW_COUNT` et `MIN_MAX` sont tous marqués `PASS`.
 - `delta_value = 0` confirme l'alignement Bronze vs Parquet sur ces runs.
 
@@ -239,23 +239,41 @@ Note importante : pour `ROW_COUNT`, la valeur de comptage est stockée dans `min
 
 ---
 
-## Étape 9 — Résultat final consolidé (`vigie_ctrl`)
+## Étape 9 — Comparatif `vigie_ctrl` (avant / après rejouage Guardian)
 
-### Tableau de synthèse (lisible métier)
+### Avant / Après rejouage Guardian (tableau vertical)
 
-| ctrl_id | expected_rows | bronze_rows | parquet_rows | bronze_status | parquet_status | duration_sec | sla_status | volume_status | alert_level |
-|---|---:|---:|---:|---|---|---:|---|---|---|
-| clients_2026-07-01_Q | 1199 | 1199 | 1199 | OK | OK | 297 | OK | OK | NO_ALERT |
-| clients_2026-07-02_Q | 741 | 996 | 996 | MISMATCH | MISMATCH | 309 | OK | ANOMALY | CRITICAL |
-| clients_2026-07-03_Q | 1251 | 1570 | 1570 | MISMATCH | MISMATCH | 306 | OK | ANOMALY | CRITICAL |
+Cas analysé: `transactions_2026-03-01_Q`.
 
-### Explication métier du résultat final
+| Champ | Avant rejouage Guardian | Après rejouage Guardian |
+|---|---|---|
+| `ctrl_id` | `transactions_2026-03-01_Q` | `transactions_2026-03-01_Q` |
+| `status_global` | `IN_PROGRESS` | `COMPLETED` |
+| `pipeline_run_id` | `NULL` | `6f33f2ce-a5d2-4f37-b392-aaafc4e9331f` |
+| `adf_pipeline_name` | `NULL` | `PL_Oeil_Guardian` |
+| `adf_trigger_name` | `NULL` | `TR_Oeil_Done` |
+| `expected_rows` | `NULL` | `1176` |
+| `bronze_rows` | `NULL` | `1176` |
+| `parquet_rows` | `NULL` | `1176` |
+| `row_count_adf_ingestion_copie_parquet` | `NULL` | `1176` |
+| `start_ts` | `2026-02-19 13:26:37.9299689` | `2026-02-19 13:26:37.9299689` |
+| `end_ts` | `NULL` | `2026-02-19 13:41:01.1972102` |
+| `duration_sec` | `NULL` | `864` |
+| `oeil_sla_status` | `NULL` | `FAIL` |
+| `volume_status` | `NULL` | `OK` |
+| `sla_bucket` | `NULL` | `VERY_SLOW` |
+| `alert_flag` | `NULL` | `1` |
+| `alert_level` | `NULL` | `CRITICAL` |
+| `alert_reason` | `NULL` | `OEIL=FAIL | BUCKET=VERY_SLOW | VOLUME=OK | ADF=OK | SYNAPSE=OK` |
+| `payload_hash_match` | `NULL` | `1` |
 
-- Le pipeline termine bien sur les 3 `ctrl_id` (`status_global = COMPLETED`).
-- La performance est conforme (`sla_status = OK` sur les 3 runs).
-- La qualité volumétrique détecte correctement 2 anomalies (`volume_status = ANOMALY`), malgré un SLA temps conforme.
-- Le moteur d’alerte est cohérent: `alert_level = CRITICAL` uniquement quand une anomalie volumétrique est confirmée.
-- Les coûts Synapse restent faibles et traçables (`synapse_cost_estimated_cad`).
+### Lecture métier du comparatif
+
+- Avant rejouage, la ligne reste bloquée en `IN_PROGRESS` (logs ADF pas encore prêts au moment du poke Guardian).
+- Après suppression/redépôt du `.done`, Guardian rejoue, complète les métriques et déclenche correctement Core/Quality.
+- La qualité volumétrique reste `OK` sur ce `ctrl_id`, mais le SLA global bascule en `FAIL` à cause d’une exécution trop longue (`VERY_SLOW`).
+- Le moteur d’alerte reflète bien ce scénario : `alert_level = CRITICAL` avec raison explicable.
+- Les autres contrôles (`clients_2026-03-01_Q`, `clients_2026-03-02_Q`, `transactions_2026-03-02_Q`) restent `COMPLETED` et `NO_ALERT`.
 
 ### Dictionnaire complet des champs (`vigie_ctrl`)
 
@@ -325,12 +343,12 @@ Note importante : pour `ROW_COUNT`, la valeur de comptage est stockée dans `min
 
 ---
 
-## Étape 10 — Power BI (Executive Overview)
+## Étape 10 — Tableau de bord Power BI (Executive Overview)
 
 ### Contexte
 
 - Vue exécutive de synthèse pour lecture rapide du run.
-- Focus: santé globale, SLA, vitesse des runs, et signal d’alertes.
+- Focus : santé globale, SLA, vitesse des runs, et signal d’alertes.
 
 ### Lecture métier du tableau exécutif
 
@@ -342,7 +360,7 @@ Note importante : pour `ROW_COUNT`, la valeur de comptage est stockée dans `min
 
 ### Message exécutif à porter en démo
 
-Le pipeline est rapide et stable, mais il remonte correctement les écarts volumétriques métier: la plateforme ne masque pas les anomalies sous un simple SLA “vert”.
+Le pipeline est rapide et stable, mais il remonte correctement les écarts volumétriques métier : la plateforme ne masque pas les anomalies sous un simple SLA « vert ».
 
 ### Screenshot
 
@@ -352,7 +370,7 @@ Le pipeline est rapide et stable, mais il remonte correctement les écarts volum
 
 ---
 
-## Étape 11 — Power BI (Volume Watch)
+## Étape 11 — Tableau de bord Power BI (Volume Watch)
 
 ### Contexte
 
