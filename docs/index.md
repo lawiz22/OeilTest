@@ -19,8 +19,8 @@ Voir convention complète :
 - [ADF Pipelines](technical_reference/adf_pipelines.md)
 - [Stored Procedures](technical_reference/stored_procedures.md)
 
-![Build](https://img.shields.io/badge/build-manual-lightgrey)
-![Coverage](https://img.shields.io/badge/coverage-n/a-lightgrey)
+[![Build](https://github.com/lawiz22/OeilTest/actions/workflows/validate-sql-json.yml/badge.svg)](https://github.com/lawiz22/OeilTest/actions/workflows/validate-sql-json.yml)
+![Tests](https://img.shields.io/badge/tests-e2e--demo-blue)
 ![Version](https://img.shields.io/badge/version-2.0-blue)
 ![License](https://img.shields.io/badge/license-Internal-red)
 ![Azure](https://img.shields.io/badge/platform-Azure-0078D4)

@@ -29,8 +29,8 @@ from python.core.vigie_faker import write_fake_vigie_run
 # 🔧 CONFIG — TOUCHE ICI
 # =====================================================
 
-START_DATE = "2026-07-01"
-END_DATE   = "2026-07-05"
+START_DATE = "2026-03-11"
+END_DATE   = "2026-03-15"
 
 DATASETS = [
     "transactions",
@@ -40,7 +40,7 @@ DATASETS = [
 ]
 
 PERIODICITY = "Q"
-CHAOS_LEVEL = 0
+CHAOS_LEVEL = 33
 FORCE_INGESTED_EQUALS_EXPECTED = True
 
 EXPECTED_ROWS_BASE = {
