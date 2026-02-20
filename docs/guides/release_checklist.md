@@ -48,6 +48,19 @@ WARNING: **Ne jamais exécuter `delete_azure_bd.sql` en PROD.**
 
 ## 6) Vérification rapide SQL (sanity checks) [Demo Required]
 
+### 6a) Déploiement SP_Insert_VigieIntegrityResult (script versionné)
+
+- Exécuter le script de release : [sql/release/2026-02-20_release_sp_insert_vigie_integrity_result.sql](../../sql/release/2026-02-20_release_sp_insert_vigie_integrity_result.sql)
+- Le script inclut :
+  - pré-checks (procédure cible + colonnes texte dans `vigie_integrity_result`)
+  - `ALTER PROCEDURE`
+  - smoke test post-déploiement avec `ROLLBACK` (aucune pollution de données)
+
+Attendu en sortie SQL:
+
+- message `Smoke test OK (rollback effectif).`
+- une ligne de résultat contenant `observed_value_text` et `reference_value_text` non nulles pendant le smoke test.
+
 ```sql
 SELECT TOP 20 ctrl_id, expected_rows, row_count_adf_ingestion_copie_parquet, bronze_delta, parquet_delta, created_ts
 FROM dbo.vigie_ctrl

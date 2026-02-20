@@ -64,6 +64,36 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 3.  Compare `duration` vs `threshold`.
 4.  Update `vigie_ctrl` avec verdict.
 
+### `SP_Insert_VigieIntegrityResult`
+
+```sql
+@ctrl_id NVARCHAR(150),
+@dataset_name NVARCHAR(150),
+@test_code NVARCHAR(50),
+@column_name NVARCHAR(150) = NULL,
+
+@bronze_value FLOAT = NULL,
+@bronze_aux_value FLOAT = NULL,
+@parquet_value FLOAT = NULL,
+@parquet_aux_value FLOAT = NULL,
+
+@status NVARCHAR(30),
+@execution_time_ms INT = NULL,
+
+@synapse_start_ts DATETIME2 = NULL,
+@synapse_end_ts DATETIME2 = NULL,
+
+@observed_value_text NVARCHAR(500) = NULL,
+@reference_value_text NVARCHAR(500) = NULL
+```
+
+1.  Calcule `delta_value = ABS(@bronze_value - @parquet_value)` quand les 2 valeurs numériques sont présentes.
+2.  Sécurise `synapse_start_ts` / `synapse_end_ts` (fallback `SYSUTCDATETIME()` et correction si `end < start`).
+3.  Insère la ligne dans `dbo.vigie_integrity_result` avec :
+	- valeurs numériques (`observed_value_num`, `reference_value_num`, etc.)
+	- valeurs texte (`observed_value_text`, `reference_value_text`) pour les tests non numériques (ex: checksum)
+	- statut, timing et timestamps.
+
 ### `SP_Update_VigieCtrl_FromIntegrity`
 
 ```sql
@@ -238,6 +268,7 @@ Exemple sur `ctrl_id = clients_2026-05-01_Q` :
 Notes :
 
 - Les résultats sont persistés dans `dbo.vigie_integrity_result` via la nouvelle structure `observed/reference`.
+- Les tests textuels (ex: `CHECKSUM`) renseignent `observed_value_text` et `reference_value_text`.
 - Si `synapse_start_ts` ou `synapse_end_ts` est absent, la SP les initialise à `SYSUTCDATETIME()`.
 - Le détail d'orchestration (JSON pipeline + screenshot) sera documenté dans une section dédiée dès intégration des artefacts ADF.
 

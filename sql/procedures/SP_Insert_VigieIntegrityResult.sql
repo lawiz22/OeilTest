@@ -18,17 +18,16 @@ ALTER PROCEDURE [dbo].[SP_Insert_VigieIntegrityResult]
     @execution_time_ms INT = NULL,
 
     @synapse_start_ts DATETIME2 = NULL,
-    @synapse_end_ts DATETIME2 = NULL
+    @synapse_end_ts DATETIME2 = NULL,
+
+    @observed_value_text NVARCHAR(500) = NULL,
+    @reference_value_text NVARCHAR(500) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
     DECLARE @delta FLOAT;
-    DECLARE @duration_sec INT;
 
-    /* =========================================
-       1️⃣ Delta générique (observed vs reference)
-       ========================================= */
     SET @delta =
         CASE
             WHEN @bronze_value IS NOT NULL
@@ -37,9 +36,6 @@ BEGIN
             ELSE NULL
         END;
 
-    /* =========================================
-       2️⃣ Sécurisation timestamps Synapse
-       ========================================= */
     IF @synapse_start_ts IS NULL
         SET @synapse_start_ts = SYSUTCDATETIME();
 
@@ -49,12 +45,6 @@ BEGIN
     IF @synapse_end_ts < @synapse_start_ts
         SET @synapse_end_ts = @synapse_start_ts;
 
-    SET @duration_sec =
-        DATEDIFF(SECOND, @synapse_start_ts, @synapse_end_ts);
-
-    /* =========================================
-       3️⃣ Insert Integrity Result (nouvelle structure)
-       ========================================= */
     INSERT INTO dbo.vigie_integrity_result
     (
         ctrl_id,
@@ -66,6 +56,9 @@ BEGIN
         observed_value_aux_num,
         reference_value_num,
         reference_value_aux_num,
+
+        observed_value_text,
+        reference_value_text,
 
         delta_value,
 
@@ -88,6 +81,9 @@ BEGIN
         @bronze_aux_value,
         @parquet_value,
         @parquet_aux_value,
+
+        @observed_value_text,
+        @reference_value_text,
 
         @delta,
 
