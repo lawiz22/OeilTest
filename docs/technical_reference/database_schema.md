@@ -35,6 +35,11 @@ Une ligne par exécution de pipeline. Clé primaire : `ctrl_id`.
 | `parquet_delta` | INT | Écart Parquet vs Bronze/attendu |
 | `parquet_status` | VARCHAR(10) | Statut volume Parquet |
 | `status_global` | VARCHAR(20) | Statut agrégé global |
+| `quality_status_global` | NVARCHAR(20) | Statut agrégé des tests qualité (`PASS`/`WARNING`/`FAIL`) |
+| `quality_tests_total` | INT | Nombre total de tests qualité exécutés pour le run |
+| `quality_tests_pass` | INT | Nombre de tests qualité en `PASS` |
+| `quality_tests_fail` | INT | Nombre de tests qualité en `FAIL` |
+| `quality_tests_warning` | INT | Nombre de tests qualité en `WARNING` |
 | `sla_expected_sec` | INT | SLA attendu global (sec) |
 | `sla_threshold_sec` | INT | Seuil SLA global (sec) |
 | `end_ts` | DATETIME2(7) | Fin du lifecycle run |
@@ -91,6 +96,8 @@ Indexes / contraintes notables :
 | `status` (`vigie_ctrl`) | Lifecycle run state (`RECEIVED`, `PROCESSING`, `COMPLETED`, `FAILED`) | Orchestration ADF/SQL |
 | `status` (`vigie_integrity_result`) | Résultat d'un test d'intégrité individuel (`PASS`, `WARNING`, `FAIL`) | Integrity engine |
 | `status_global` | État global d'orchestration du pipeline | Orchestration ADF/SQL |
+| `quality_status_global` | État global qualité agrégé du run | Quality Engine + `SP_Compute_Quality_Summary` |
+| `quality_tests_total`, `quality_tests_pass`, `quality_tests_fail`, `quality_tests_warning` | Compteurs de synthèse qualité par run | Quality Engine + `SP_Compute_Quality_Summary` |
 | `adf_sla_status` | Verdict SLA ingestion | Métriques ADF (Log Analytics) |
 | `oeil_sla_status` | Verdict SLA orchestration OEIL | Compute SLA OEIL |
 | `synapse_sla_status` | Verdict SLA compute Synapse | Quality Engine + compute SLA Synapse |

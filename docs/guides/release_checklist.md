@@ -62,7 +62,17 @@ Attendu en sortie SQL:
 - une ligne de résultat contenant `observed_value_text` et `reference_value_text` non nulles pendant le smoke test.
 
 ```sql
-SELECT TOP 20 ctrl_id, expected_rows, row_count_adf_ingestion_copie_parquet, bronze_delta, parquet_delta, created_ts
+SELECT TOP 20 ctrl_id,
+       expected_rows,
+       row_count_adf_ingestion_copie_parquet,
+       bronze_delta,
+       parquet_delta,
+       quality_status_global,
+       quality_tests_total,
+       quality_tests_pass,
+       quality_tests_fail,
+       quality_tests_warning,
+       created_ts
 FROM dbo.vigie_ctrl
 ORDER BY created_ts DESC;
 ```

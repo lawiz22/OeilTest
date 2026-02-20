@@ -30,6 +30,11 @@ Cette annexe contient la vue exhaustive du snapshot `vigie_ctrl` pour le run de 
 | `parquet_delta` | `0` | `0` | `0` | `0` | `0` | `-52` |
 | `parquet_status` | `OK` | `OK` | `OK` | `OK` | `OK` | `MISMATCH` |
 | `status_global` | `COMPLETED` | `COMPLETED` | `COMPLETED` | `COMPLETED` | `COMPLETED` | `COMPLETED` |
+| `quality_status_global` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
+| `quality_tests_total` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
+| `quality_tests_pass` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
+| `quality_tests_fail` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
+| `quality_tests_warning` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
 | `sla_expected_sec` | `360` | `360` | `360` | `360` | `360` | `360` |
 | `sla_threshold_sec` | `439` | `439` | `439` | `439` | `439` | `439` |
 | `end_ts` | `2026-02-19 13:31:15.1774683` | `2026-02-19 13:31:21.8352372` | `2026-02-19 15:34:41.8066756` | `2026-02-19 13:41:01.1972102` | `2026-02-19 13:31:21.9446142` | `2026-02-19 16:40:34.8080811` |

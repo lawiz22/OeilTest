@@ -41,6 +41,16 @@ Métriques de contrôle des données :
 -   **Volume Issue Runs** : Nombre de runs où le volume réel diffère significativement du volume attendu.
 -   **Volume Drift Detected** : Détection de tendance anormale (hausse ou baisse continue).
 
+### 6. Qualité (synthèse run)
+
+Métriques de synthèse qualité maintenant disponibles dans `vigie_ctrl` :
+
+- **Quality Status Global** : `quality_status_global` (`PASS`, `WARNING`, `FAIL`).
+- **Quality Tests Total** : `quality_tests_total`.
+- **Quality Tests Pass** : `quality_tests_pass`.
+- **Quality Tests Fail** : `quality_tests_fail`.
+- **Quality Tests Warning** : `quality_tests_warning`.
+
 ## Nouveaux onglets Volumetric
 
 Deux onglets ont été ajoutés pour le suivi volumétrique détaillé entre l'attendu, Bronze et Parquet.
@@ -113,6 +123,13 @@ Définitions recommandées pour garder une lecture homogène entre environnement
 - **Sum parquet_delta** = `SUM(parquet_rows - expected_rows)`
 - **Sum synapse_cost_estimated_cad** = `SUM(synapse_cost_estimated_cad)`
 - **Sum synapse_duration_sec** = `SUM(synapse_duration_sec)`
+
+### KPI qualité (option recommandé)
+
+- **Runs Quality FAIL** = `CALCULATE(COUNTROWS(vigie_ctrl), vigie_ctrl[quality_status_global] = "FAIL")`
+- **Runs Quality WARNING** = `CALCULATE(COUNTROWS(vigie_ctrl), vigie_ctrl[quality_status_global] = "WARNING")`
+- **Runs Quality PASS** = `CALCULATE(COUNTROWS(vigie_ctrl), vigie_ctrl[quality_status_global] = "PASS")`
+- **Quality Pass Rate** = `DIVIDE(SUM(vigie_ctrl[quality_tests_pass]), SUM(vigie_ctrl[quality_tests_total]))`
 
 ### Règles d'interprétation
 

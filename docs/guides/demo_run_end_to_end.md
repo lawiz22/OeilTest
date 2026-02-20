@@ -293,6 +293,11 @@ Annexe complète (toutes les colonnes, toutes les valeurs):
 | `bronze_status` | `OK` | `OK` | `OK` | `OK` | `OK` | `MISMATCH` |
 | `parquet_status` | `OK` | `OK` | `OK` | `OK` | `OK` | `MISMATCH` |
 | `status_global` | `COMPLETED` | `COMPLETED` | `COMPLETED` | `COMPLETED` | `COMPLETED` | `COMPLETED` |
+| `quality_status_global` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
+| `quality_tests_total` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
+| `quality_tests_pass` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
+| `quality_tests_fail` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
+| `quality_tests_warning` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` | `NULL` |
 | `duration_sec` | `270` | `265` | `246` | `864` | `275` | `4243` |
 | `sla_status` | `OK` | `OK` | `OK` | `FAIL` | `OK` | `FAIL` |
 | `volume_status` | `OK` | `OK` | `OK` | `OK` | `OK` | `ANOMALY` |
@@ -330,6 +335,11 @@ Annexe complète (toutes les colonnes, toutes les valeurs):
 - `parquet_delta`: écart Parquet vs attendu (`parquet_rows - expected_rows`).
 - `parquet_status`: verdict Parquet (`OK` ou `MISMATCH`).
 - `status_global`: état global du cycle (ex: `COMPLETED`).
+- `quality_status_global`: synthèse globale des tests qualité (`PASS` / `WARNING` / `FAIL`).
+- `quality_tests_total`: nombre total de tests qualité pris en compte sur le run.
+- `quality_tests_pass`: nombre de tests qualité en succès.
+- `quality_tests_fail`: nombre de tests qualité en échec.
+- `quality_tests_warning`: nombre de tests qualité en avertissement.
 - `sla_expected_sec`: objectif SLA nominal (en secondes).
 - `sla_threshold_sec`: seuil maximal SLA accepté (en secondes).
 - `end_ts`: horodatage de fin du cycle ŒIL.

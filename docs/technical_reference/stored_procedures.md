@@ -21,6 +21,7 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 | `SP_Compute_SLA_SYNAPSE` | 📊 Calcul | **SYNAPSE** | `EXECUTION_TYPE` | Lit durée Synapse, calcule SLA fixed overhead. |
 | `SP_Compute_SLA_OEIL` | 📊 Calcul | **OEIL** | `EXECUTION_TYPE` | Appelé en interne par `SP_Set_End`, mais peut être rappelé pour recalcul. |
 | `SP_Compute_SLA_Vigie` | 📊 Calcul | **GLOBAL** | `DATASET` (futur) | Calcul SLA global par dataset (plus fin que par moteur). |
+| `SP_Compute_Quality_Summary` | 📊 Calcul | **QUALITY** | — | Agrège les résultats de `vigie_integrity_result` et met à jour les champs `quality_*` dans `vigie_ctrl`. |
 | `SP_Update_VigieCtrl_FromIntegrity` | 🔁 Sync qualité → run | **OEIL** | — | Reprend le dernier `ROW_COUNT` de `vigie_integrity_result`, compare à `expected_rows` et met à jour `vigie_ctrl` (bronze/parquet/timestamps/status). |
 | `SP_Verify_Ctrl_Hash_V1` | 🔒 Intégrité CTRL | **OEIL** | — | Vérifie la cohérence du hash canonique CTRL et met à jour `payload_hash_match` dans `vigie_ctrl`. |
 
@@ -93,6 +94,25 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 	- valeurs numériques (`observed_value_num`, `reference_value_num`, etc.)
 	- valeurs texte (`observed_value_text`, `reference_value_text`) pour les tests non numériques (ex: checksum)
 	- statut, timing et timestamps.
+
+### `SP_Compute_Quality_Summary`
+
+```sql
+@ctrl_id NVARCHAR(150)
+```
+
+1.  Agrège les statuts (`PASS`, `FAIL`, `WARNING`) de `dbo.vigie_integrity_result` pour `@ctrl_id`.
+2.  Calcule les compteurs qualité :
+	- `quality_tests_total`
+	- `quality_tests_pass`
+	- `quality_tests_fail`
+	- `quality_tests_warning`
+3.  Détermine `quality_status_global` selon la règle:
+	- `UNKNOWN` si aucun test
+	- `FAIL` si au moins un fail
+	- `WARNING` sinon si au moins un warning
+	- `PASS` sinon
+4.  Met à jour `dbo.vigie_ctrl` pour le `ctrl_id` ciblé.
 
 ### `SP_Update_VigieCtrl_FromIntegrity`
 

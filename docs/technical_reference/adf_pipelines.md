@@ -266,7 +266,7 @@ flowchart TD
 | `p_dataset`, `p_periodicity`, `p_extraction_date`, `p_environment` | Input | Paramètres déclarés et fournis par `PL_Oeil_Guardian` |
 | `LK_Read_CtrlJson` | Derived | Dataset/periodicity/extraction_date utilisés pour exécuter la qualité |
 | `PL_Oeil_Quality_Engine` | Output | Exécution qualité Synapse pilotée par policy |
-| `dbo.vigie_ctrl` | Output | Run enrichi (volume status, SLA, bucket, alert, status_global) |
+| `dbo.vigie_ctrl` | Output | Run enrichi (volume status, SLA, bucket, alert, status_global, quality_status_global, quality_tests_*) |
 | `dbo.ctrl_file_index` | Output | Flag `processed_flag=1`, `processed_ts` |
 
 ---
@@ -369,7 +369,7 @@ flowchart TD
 | `Lookup Policy` | Derived | Liste des tests actifs (`ROW_COUNT`, `MIN_MAX`, etc.) |
 | `dbo.vigie_integrity_result` | Output | Une ligne persistée par test exécuté |
 | `SP_Update_VigieCtrl_FromIntegrity` | Output | Synchronisation des métriques d'intégrité vers `vigie_ctrl` |
-| `dbo.vigie_ctrl` | Output | Colonnes Synapse enrichies (`synapse_*`, `status`, rowcount) |
+| `dbo.vigie_ctrl` | Output | Colonnes Synapse enrichies (`synapse_*`, `status`, rowcount) + synthèse qualité (`quality_status_global`, `quality_tests_*`) |
 | `synapse_cost_estimated_cad` | Output | Coût Synapse estimé sur le run |
 | `status` | Output | `PASS` / `FAIL` (retour Synapse) |
 | `delta_value` | Output | Écart calculé (0 attendu sur run nominal) |
