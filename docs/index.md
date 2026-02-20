@@ -63,6 +63,7 @@ High-level overview of components (ADF, SQL, Synapse) and data flow.
 - **[Design Decisions](guides/design_decisions.md)**: Rationale behind key architectural choices.
 - **[Release Checklist](guides/release_checklist.md)**: Step-by-step runbook for demo/release execution.
 - **[Demo Run End-to-End](guides/demo_run_end_to_end.md)**: Step-by-step walkthrough with screenshots.
+- **[Policy Reset SQL](guides/policy_reset_sql.md)**: Comment réinitialiser et reseeder les tables `vigie_policy_*`.
 
 ---
 
