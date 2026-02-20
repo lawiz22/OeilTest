@@ -204,6 +204,27 @@ Le pipeline de qualité est opérationnel avec **2 policies activées** :
 - Azure SQL : `dbo.SP_Update_VigieCtrl_FromIntegrity`
 - Synapse : `ctrl.SP_OEIL_ROWCOUNT`
 - Synapse : `ctrl.SP_OEIL_MIN_MAX`
+- Synapse : `ctrl.SP_OEIL_CHECKSUM`
+
+### Procédure Synapse ajoutée (checksum)
+
+`ctrl.SP_OEIL_CHECKSUM` compare un hash SHA-256 déterministe Bronze vs Parquet pour une colonne donnée.
+
+Signature:
+
+```sql
+ctrl.SP_OEIL_CHECKSUM(
+	@bronze_path NVARCHAR(500),
+	@parquet_path NVARCHAR(500),
+	@column_name NVARCHAR(150)
+)
+```
+
+Sortie:
+
+- `bronze_checksum`
+- `parquet_checksum`
+- `integrity_status` (`PASS` / `FAIL`)
 
 ### Résultats observés (exemple validé)
 
@@ -219,3 +240,4 @@ Notes :
 - Les résultats sont persistés dans `dbo.vigie_integrity_result` via la nouvelle structure `observed/reference`.
 - Si `synapse_start_ts` ou `synapse_end_ts` est absent, la SP les initialise à `SYSUTCDATETIME()`.
 - Le détail d'orchestration (JSON pipeline + screenshot) sera documenté dans une section dédiée dès intégration des artefacts ADF.
+

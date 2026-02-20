@@ -11,6 +11,12 @@ Le script couvre 2 opérations distinctes :
    - `dbo.vigie_policy_test`
 2. **Reset + seed du catalogue de types de test**
    - `dbo.vigie_policy_test_type`
+3. **Migration schéma policy pour checksum multi-level**
+  - ajout colonnes dans `dbo.vigie_policy_test` :
+    - `checksum_level`
+    - `hash_algorithm`
+    - `column_list`
+    - `order_by_column`
 
 ## ⚠️ Point important (ordre d’exécution)
 
@@ -33,7 +39,7 @@ Effet:
 - reset `vigie_policy_test` et `vigie_policy_dataset`,
 - reseed IDs,
 - seed datasets DEV/PROD,
-- seed tests `ROW_COUNT` + `MIN_MAX` pour `DEV`.
+- seed tests `ROW_COUNT` + `MIN_MAX` + `CHECKSUM` pour `DEV`.
 
 ### Mode B — Reset catalogue des types de test
 
@@ -71,6 +77,23 @@ avec :
     - accounts -> `account_id`
     - transactions -> `transaction_id`
     - contracts -> `contract_id`
+- `CHECKSUM`
+  - `frequency = 'DAILY'`
+  - `column_name` mappée par dataset (même mapping que `MIN_MAX`)
+  - `checksum_level = 1`
+  - `hash_algorithm = 'SHA256'`
+  - `column_list = NULL`, `order_by_column = NULL` (niveau 1)
+
+  ## Support checksum multi-level (migration)
+
+  Le bloc `ALTER TABLE` en fin de `Policy.sql` ajoute les colonnes nécessaires au pilotage des checksums avancés.
+
+  - `checksum_level` : niveau de checksum (1/2/3 selon stratégie)
+  - `hash_algorithm` : algorithme utilisé (`SHA256`, etc.)
+  - `column_list` : colonnes utilisées pour un hash row-level déterministe
+  - `order_by_column` : colonne d’ordre stable pour les niveaux 2/3
+
+  Recommandation : garder un script **idempotent** (test `COL_LENGTH`) pour pouvoir rejouer la migration sans erreur.
 
 ## Requêtes de validation rapide
 
@@ -106,4 +129,20 @@ JOIN dbo.vigie_policy_dataset d
 JOIN dbo.vigie_policy_test_type tt
     ON t.test_type_id = tt.test_type_id
 ORDER BY d.dataset_name, d.environment, tt.test_code;
+```
+
+### D. Vérifier les colonnes checksum (schema)
+
+```sql
+SELECT 
+    c.name AS column_name,
+    t.name AS data_type,
+    c.max_length,
+    c.is_nullable
+FROM sys.columns c
+JOIN sys.types t
+    ON c.user_type_id = t.user_type_id
+WHERE c.object_id = OBJECT_ID('dbo.vigie_policy_test')
+  AND c.name IN ('checksum_level', 'hash_algorithm', 'column_list', 'order_by_column')
+ORDER BY c.name;
 ```

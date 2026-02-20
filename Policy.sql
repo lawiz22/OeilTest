@@ -134,3 +134,74 @@ VALUES
 ('CHECKSUM',       'Checksum déterministique SHA256',                        1),
 ('NULL_COUNT',     'Validation du nombre de valeurs NULL',                   1),
 ('RUN_COMPARISON', 'Comparaison avec le run précédent',                      0);
+
+
+
+
+BEGIN TRANSACTION;
+
+-- 1️⃣ Niveau de checksum (1,2,3)
+IF COL_LENGTH('dbo.vigie_policy_test', 'checksum_level') IS NULL
+BEGIN
+    ALTER TABLE dbo.vigie_policy_test
+    ADD checksum_level TINYINT NULL;
+END
+
+-- 2️⃣ Algorithme utilisé
+IF COL_LENGTH('dbo.vigie_policy_test', 'hash_algorithm') IS NULL
+BEGIN
+    ALTER TABLE dbo.vigie_policy_test
+    ADD hash_algorithm NVARCHAR(50) NULL;
+END
+
+-- 3️⃣ Liste de colonnes (pour row-level hash)
+IF COL_LENGTH('dbo.vigie_policy_test', 'column_list') IS NULL
+BEGIN
+    ALTER TABLE dbo.vigie_policy_test
+    ADD column_list NVARCHAR(1000) NULL;
+END
+
+-- 4️⃣ Colonne pour ORDER BY déterministe (niveau 2/3)
+IF COL_LENGTH('dbo.vigie_policy_test', 'order_by_column') IS NULL
+BEGIN
+    ALTER TABLE dbo.vigie_policy_test
+    ADD order_by_column NVARCHAR(150) NULL;
+END
+
+COMMIT;
+
+
+INSERT INTO dbo.vigie_policy_test
+(
+    policy_dataset_id,
+    test_type_id,
+    is_enabled,
+    frequency,
+    threshold_value,
+    column_name,
+    checksum_level,
+    hash_algorithm,
+    column_list,
+    order_by_column
+)
+SELECT
+    d.policy_dataset_id,
+    tt.test_type_id,
+    1,
+    'DAILY',
+    NULL,
+    CASE 
+        WHEN d.dataset_name = 'clients' THEN 'client_id'
+        WHEN d.dataset_name = 'accounts' THEN 'account_id'
+        WHEN d.dataset_name = 'transactions' THEN 'transaction_id'
+        WHEN d.dataset_name = 'contracts' THEN 'contract_id'
+    END,
+    1,
+    'SHA256',
+    NULL,
+    NULL
+FROM dbo.vigie_policy_dataset d
+JOIN dbo.vigie_policy_test_type tt
+    ON tt.test_code = 'CHECKSUM'
+WHERE d.environment = 'DEV';
+

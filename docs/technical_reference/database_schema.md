@@ -169,6 +169,10 @@ Note : si un environnement conserve encore les buckets historiques (`OK`, `WARNI
 | `frequency` | NVARCHAR(20) NOT NULL | Fréquence (`DAILY`/`WEEKLY`/`MONTHLY`) |
 | `threshold_value` | FLOAT NULL | Seuil paramétrable |
 | `column_name` | NVARCHAR(150) NULL | Colonne ciblée (si test colonne) |
+| `checksum_level` | TINYINT NULL | Niveau checksum (ex: 1 global, 2 agrégé, 3 row-level) |
+| `hash_algorithm` | NVARCHAR(50) NULL | Algorithme de hash (ex: `SHA256`) |
+| `column_list` | NVARCHAR(1000) NULL | Liste de colonnes pour checksum row-level |
+| `order_by_column` | NVARCHAR(150) NULL | Colonne d’ordre déterministe pour checksum niveau 2/3 |
 | `created_at` | DATETIME2 DEFAULT SYSUTCDATETIME() | Création |
 
 FK notables :
