@@ -2,7 +2,18 @@
 
 > **Un moteur de validation configurable, traçable et réutilisable — enterprise-wide.**
 
+> **A lightweight Data Reliability Platform for Azure-native architectures.**
+
 L'ŒIL est un framework de contrôle qualité des données conçu pour les environnements Azure. Il orchestre la validation de volumes, de SLA, d'intégrité et de coûts à travers Azure Data Factory, Synapse, Azure SQL et Log Analytics.
+
+## TL;DR — L’ŒIL en 30 secondes
+
+L’ŒIL est un framework de qualité des données **piloté par politiques** pour Azure qui :
+
+- valide le contrat de données vs l’exécution réelle,
+- calcule les SLA et les coûts,
+- génère des snapshots d’audit immuables,
+- sépare l’ingestion de la gouvernance.
 
 > **Mise à jour architecture** : l'orchestration est scindée entre `PL_Oeil_Guardian` (ingestion CTRL + garde hash) et `PL_Oeil_Core` (qualité/SLA/alertes). La validation Synapse reste centralisée dans `PL_Oeil_Quality_Engine` (appelé par `PL_Oeil_Core`).
 
