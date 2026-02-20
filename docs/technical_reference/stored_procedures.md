@@ -21,7 +21,7 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 | `SP_Compute_SLA_SYNAPSE` | 📊 Calcul | **SYNAPSE** | `EXECUTION_TYPE` | Lit durée Synapse, calcule SLA fixed overhead. |
 | `SP_Compute_SLA_OEIL` | 📊 Calcul | **OEIL** | `EXECUTION_TYPE` | Appelé en interne par `SP_Set_End`, mais peut être rappelé pour recalcul. |
 | `SP_Compute_SLA_Vigie` | 📊 Calcul | **GLOBAL** | `DATASET` (futur) | Calcul SLA global par dataset (plus fin que par moteur). |
-| `SP_Update_VigieCtrl_FromIntegrity` | 🔁 Sync qualité → run | **OEIL** | — | Reprend le dernier `ROWCOUNT` de `vigie_integrity_result` et met à jour `vigie_ctrl` (timestamps/durée/status/rowcount). |
+| `SP_Update_VigieCtrl_FromIntegrity` | 🔁 Sync qualité → run | **OEIL** | — | Reprend le dernier `ROW_COUNT` de `vigie_integrity_result`, compare à `expected_rows` et met à jour `vigie_ctrl` (bronze/parquet/timestamps/status). |
 | `SP_Verify_Ctrl_Hash_V1` | 🔒 Intégrité CTRL | **OEIL** | — | Vérifie la cohérence du hash canonique CTRL et met à jour `payload_hash_match` dans `vigie_ctrl`. |
 
 ## Parameters and Logic
@@ -70,20 +70,22 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 @ctrl_id NVARCHAR(150)
 ```
 
-1.  Lit la dernière ligne `ROWCOUNT` de `dbo.vigie_integrity_result` pour `@ctrl_id`.
+1.  Lit la dernière ligne `ROW_COUNT` de `dbo.vigie_integrity_result` pour `@ctrl_id`.
 2.  Calcule `synapse_duration_sec = DATEDIFF(SECOND, synapse_start_ts, synapse_end_ts)`.
-3.  Met à jour `dbo.vigie_ctrl` avec :
+3.  Lit `expected_rows` dans `dbo.vigie_ctrl`.
+4.  Met à jour `dbo.vigie_ctrl` avec :
+	- `bronze_rows` (depuis `observed_value_num`) + `bronze_delta` + `bronze_status`
+	- `parquet_rows` (depuis `reference_value_num`) + `parquet_delta` + `parquet_status`
 	- `synapse_start_ts`, `synapse_end_ts`, `synapse_duration_sec`
-	- `row_count_adf_ingestion_copie_parquet` (depuis `min_value` casté INT)
 	- `status` (depuis le `status` d'intégrité)
 
 Convention importante :
 
-- Pour le test `ROW_COUNT`, la valeur de row count est stockée dans `min_value` (convention technique actuelle).
+- Pour le test `ROW_COUNT`, la valeur Bronze est portée par `observed_value_num` et la valeur Parquet par `reference_value_num`.
 
 Règle de réduction (tests multiples) [Implemented]:
 
-- Si plusieurs résultats existent pour un même `ctrl_id` + `ROWCOUNT`, la procédure prend le plus récent.
+- Si plusieurs résultats existent pour un même `ctrl_id` + `ROW_COUNT`, la procédure prend le plus récent.
 - Le choix est explicite (`TOP 1 ... ORDER BY integrity_result_id DESC`) pour éviter toute dépendance à l'ordre implicite d'insertion.
 
 ### `SP_Verify_Ctrl_Hash_V1`
@@ -122,7 +124,7 @@ Exemple canonique V1:
 - La PK (`ctrl_id`) protège contre les doubles insertions de run logique dans `vigie_ctrl`.
 - `SP_Set_Start_TS_OEIL` ne réécrit pas `start_ts` si déjà posé.
 - `SP_Set_End_TS_OEIL` ne réécrit pas `end_ts` si déjà posé (comportement attendu d'idempotence lifecycle).
-- `SP_Update_VigieCtrl_FromIntegrity` applique une réduction `latest` (dernier `ROWCOUNT` via `TOP 1 ... ORDER BY integrity_result_id DESC`).
+- `SP_Update_VigieCtrl_FromIntegrity` applique une réduction `latest` (dernier `ROW_COUNT` via `TOP 1 ... ORDER BY integrity_result_id DESC`).
 
 ## Mini diagrammes (SP critiques)
 
@@ -171,8 +173,8 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-	A[Inputs: p_ctrl_id, p_dataset, test_code, métriques test] --> B[Mapping SQL: p_dataset -> dataset_name]
-	B --> C[Normaliser valeurs: min/max/expected/delta/status]
+	A[Inputs: ctrl_id/dataset/test + observed/reference + timestamps Synapse] --> B[Compute delta = ABS(observed-reference)]
+	B --> C[Sécuriser synapse_start_ts/synapse_end_ts]
 	C --> D[INSERT ligne dbo.vigie_integrity_result]
 	D --> E[(Output: trace d'intégrité persistée)]
 ```
@@ -181,10 +183,12 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-	A[Input: p_ctrl_id] --> B[SELECT TOP 1 ROWCOUNT dans vigie_integrity_result]
-	B --> C[Compute synapse_duration_sec]
-	C --> D[UPDATE dbo.vigie_ctrl]
-	D --> E[(Output: sync run metrics depuis intégrité)]
+	A[Input: p_ctrl_id] --> B[SELECT TOP 1 ROW_COUNT dans vigie_integrity_result]
+	B --> C[Map observed/reference -> bronze/parquet]
+	C --> D[Lookup expected_rows dans vigie_ctrl]
+	D --> E[Compute delta/status bronze+parquet]
+	E --> F[UPDATE dbo.vigie_ctrl]
+	F --> G[(Output: sync run metrics depuis intégrité)]
 ```
 
 ## Pipeline Qualité (Intégrité) — Statut actuel
@@ -205,12 +209,13 @@ Le pipeline de qualité est opérationnel avec **2 policies activées** :
 
 Exemple sur `ctrl_id = clients_2026-05-01_Q` :
 
-| integrity_result_id | test_code | column_name | min_value | max_value | expected_value | delta_value | status | execution_time_ms |
-|---|---|---|---:|---:|---:|---:|---|---:|
-| 6 | MIN_MAX | client_id | 101113 | 999862 | 101113 | 0 | PASS | 3 |
-| 5 | ROW_COUNT | 'ROWCOUNT' | 872 | 0 | 872 | 0 | PASS | 3 |
+| integrity_result_id | test_code | column_name | observed_value_num | observed_value_aux_num | reference_value_num | reference_value_aux_num | delta_value | status | execution_time_ms | synapse_start_ts | synapse_end_ts |
+|---|---|---|---:|---:|---:|---:|---:|---|---:|---|---|
+| 6 | MIN_MAX | client_id | 101113 | 999862 | 101113 | 999862 | 0 | PASS | 3 | 2026-02-19 13:29:21 | 2026-02-19 13:29:50 |
+| 5 | ROW_COUNT | ROW_COUNT | 872 | 0 | 872 | 0 | 0 | PASS | 3 | 2026-02-19 13:29:21 | 2026-02-19 13:29:50 |
 
 Notes :
 
-- Les résultats sont persistés dans `dbo.vigie_integrity_result`.
+- Les résultats sont persistés dans `dbo.vigie_integrity_result` via la nouvelle structure `observed/reference`.
+- Si `synapse_start_ts` ou `synapse_end_ts` est absent, la SP les initialise à `SYSUTCDATETIME()`.
 - Le détail d'orchestration (JSON pipeline + screenshot) sera documenté dans une section dédiée dès intégration des artefacts ADF.
