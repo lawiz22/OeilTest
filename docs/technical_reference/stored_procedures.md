@@ -1,6 +1,20 @@
 # ⚙️ Stored Procedures
 
-Les procédures stockées Azure SQL sont les points d'intégration pour les calculateurs de SLA et le lifecycle du framework.
+Les procédures stockées sont les points d'intégration pour les calculateurs de SLA, le lifecycle du framework et la validation de qualité.
+
+## 🏛️ Architecture: Azure SQL vs Synapse
+
+**Azure SQL Database** (vigie_ctrl):
+- Procédures de **lifecycle** et **orchestration**
+- Calculs **SLA** et **quality summary**
+- Validation **structurelle** (hash comparison)
+- Localisation: `sql/procedures/`
+
+**Synapse Serverless** (pool SQL):
+- Procédures d'**inspection** des fichiers Parquet/CSV
+- Tests de **qualité** (ROW_COUNT, MIN_MAX, CHECKSUM)
+- Détection **structurelle** runtime
+- Localisation: `sql/synapse/procedures/`
 
 ## Convention de vocabulaire (cross-docs)
 
@@ -25,6 +39,9 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 | `SP_Update_VigieCtrl_FromIntegrity` | 🔁 Sync qualité → run | **OEIL** | — | Reprend le dernier `ROW_COUNT` de `vigie_integrity_result`, compare à `expected_rows` et met à jour `vigie_ctrl` (bronze/parquet/timestamps/status). |
 | `SP_Verify_Ctrl_Hash_V1` | 🔒 Intégrité CTRL | **OEIL** | — | Vérifie la cohérence du hash canonique CTRL et met à jour `payload_hash_match` dans `vigie_ctrl`. |
 | `SP_REFRESH_STRUCTURAL_HASH` | 🔄 Refresh hash | **CTRL** | — | Recalcule le hash structurel SHA-256 basé sur le mapping JSON déterministe des datasets et colonnes. |
+| `SP_GET_CONTRACT_STRUCTURE_HASH` (**Azure SQL**) | 🔍 Get contract hash | **CTRL** | — | Génère hash SHA-256 du contrat structurel (ordinal + nom + type normalisé) depuis `ctrl.dataset_column`. |
+| `SP_GET_DETECTED_STRUCTURE_HASH` (**Synapse**) | 🔎 Get detected hash | **QUALITY** | — | Génère hash SHA-256 de la structure détectée (ordinal + nom + type réel) depuis `INFORMATION_SCHEMA.COLUMNS` (external table). |
+| `SP_CHECKSUM_STRUCTURE_COMPARE` (**Azure SQL**) | ✅ Validate structure | **QUALITY** | — | Compare hash contractuel vs détecté. **THROW 50001** si FAIL, sinon PASS et continue. |
 
 ## Parameters and Logic
 
@@ -185,6 +202,63 @@ Exemple canonique V1:
 
 Utilisé pour détecter les changements de structure/mapping et invalider les runs basés sur une version obsolète du schéma.
 
+### `SP_GET_CONTRACT_STRUCTURE_HASH` (**Azure SQL**)
+
+```sql
+@dataset_name VARCHAR(100)
+```
+
+1. Lit la structure **contractuelle** depuis `ctrl.dataset` et `ctrl.dataset_column`.
+2. Génère un JSON déterministe avec:
+	- `ordinal` (ordre des colonnes)
+	- `name` (nom de colonne)
+	- `type_detected` (type normalisé: `int`, `varchar`, `date`, etc.)
+3. Calcule le hash SHA-256 du JSON.
+4. Retourne `contract_structure_json` et `contract_structural_hash`.
+
+Normalisation des types pour garantir comparaison:
+- `VARCHAR(n)` → `varchar`
+- `CHAR(n)` → `char`
+- `DECIMAL(p,s)` → `decimal`
+- `DATETIME2` / `DATETIME` → `datetime2`
+
+### `SP_GET_DETECTED_STRUCTURE_HASH` (**Synapse Serverless**)
+
+```sql
+@dataset_name VARCHAR(100)
+```
+
+1. Cible la table externe `ext.{dataset_name}_std` (ex: `ext.clients_std`).
+2. Interroge `INFORMATION_SCHEMA.COLUMNS` pour obtenir la structure **réelle** du Parquet.
+3. Génère un JSON déterministe avec:
+	- `ordinal` (ordre effectif des colonnes)
+	- `name` (nom effectif)
+	- `type_detected` (type SQL détecté par Synapse)
+4. Calcule le hash SHA-256 du JSON.
+5. Retourne `detected_structure_json` et `detected_structural_hash`.
+
+**Note critique**: Cette SP s'exécute **dans Synapse**, pas dans Azure SQL.
+
+### `SP_CHECKSUM_STRUCTURE_COMPARE` (**Azure SQL**)
+
+```sql
+@ctrl_id        NVARCHAR(150),
+@dataset_name   NVARCHAR(150),
+@contract_hash  VARBINARY(32),
+@detected_hash  VARBINARY(32)
+```
+
+1. Compare `@contract_hash` (attendu) vs `@detected_hash` (réel).
+2. Insère résultat dans `dbo.vigie_integrity_result`:
+	- `test_code = 'CHECKSUM_STRUCTURE'`
+	- `observed_value_text` = hash détecté (hex)
+	- `reference_value_text` = hash contractuel (hex)
+	- `status` = `PASS` / `FAIL`
+3. **Si FAIL**: `THROW 50001` → bloque le pipeline immédiatement.
+4. **Si PASS**: retourne résumé et continue.
+
+**Rôle critique**: Point de contrôle **pré-qualité**. Si la structure ne match pas (ordre colonnes, types, noms), le pipeline s'arrête **avant** les tests ROW_COUNT/MIN_MAX/CHECKSUM pour éviter erreurs downstream.
+
 ## 🔒 Concurrency & Idempotence Guarantees
 
 - La PK (`ctrl_id`) protège contre les doubles insertions de run logique dans `vigie_ctrl`.
@@ -193,6 +267,45 @@ Utilisé pour détecter les changements de structure/mapping et invalider les ru
 - `SP_Update_VigieCtrl_FromIntegrity` applique une réduction `latest` (dernier `ROW_COUNT` via `TOP 1 ... ORDER BY integrity_result_id DESC`).
 
 ## Mini diagrammes (SP critiques)
+
+### 0) **Validation Structurelle** (nouveau flux pré-qualité)
+
+```mermaid
+flowchart TD
+    A[PL_Oeil_Quality_Engine démarré] --> B[SP_GET_CONTRACT_STRUCTURE_HASH<br/>Azure SQL]
+    B --> C{Lit ctrl.dataset_column}
+    C --> D[JSON contract: ordinal+name+type_normalized]
+    D --> E[contract_hash = SHA2_256]
+    
+    A --> F[SP_GET_DETECTED_STRUCTURE_HASH<br/>Synapse Serverless]
+    F --> G{Lit INFORMATION_SCHEMA.COLUMNS<br/>ext.dataset_std}
+    G --> H[JSON detected: ordinal+name+type_detected]
+    H --> I[detected_hash = SHA2_256]
+    
+    E --> J[SP_CHECKSUM_STRUCTURE_COMPARE<br/>Azure SQL]
+    I --> J
+    
+    J --> K{contract_hash == detected_hash ?}
+    K -->|PASS| L[INSERT vigie_integrity_result<br/>test_code=CHECKSUM_STRUCTURE<br/>status=PASS]
+    L --> M[Continue vers ForEach_Policy]
+    M --> N[Tests qualité: ROW_COUNT, MIN_MAX, CHECKSUM...]
+    
+    K -->|FAIL| O[INSERT vigie_integrity_result<br/>status=FAIL]
+    O --> P[THROW 50001:<br/>CHECKSUM_STRUCTURE FAILED]
+    P --> Q[❌ Pipeline arrêté]
+    
+    style P fill:#ff6b6b
+    style Q fill:#ff6b6b
+    style M fill:#51cf66
+    style N fill:#51cf66
+```
+
+**Impact**: Cette validation structurelle **bloque** le pipeline si:
+- Ordre des colonnes différent
+- Types SQL incompatibles (ex: `int` vs `varchar`)
+- Colonnes manquantes ou ajoutées
+
+Cela évite les erreurs downstream et garantit la conformité au contrat avant d'exécuter les tests coûteux.
 
 ### 1) `SP_Set_Start_TS_OEIL`
 
