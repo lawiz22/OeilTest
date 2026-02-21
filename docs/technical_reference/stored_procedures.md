@@ -24,6 +24,7 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 | `SP_Compute_Quality_Summary` | 📊 Calcul | **QUALITY** | — | Agrège les résultats de `vigie_integrity_result` et met à jour les champs `quality_*` dans `vigie_ctrl`. |
 | `SP_Update_VigieCtrl_FromIntegrity` | 🔁 Sync qualité → run | **OEIL** | — | Reprend le dernier `ROW_COUNT` de `vigie_integrity_result`, compare à `expected_rows` et met à jour `vigie_ctrl` (bronze/parquet/timestamps/status). |
 | `SP_Verify_Ctrl_Hash_V1` | 🔒 Intégrité CTRL | **OEIL** | — | Vérifie la cohérence du hash canonique CTRL et met à jour `payload_hash_match` dans `vigie_ctrl`. |
+| `SP_REFRESH_STRUCTURAL_HASH` | 🔄 Refresh hash | **CTRL** | — | Recalcule le hash structurel SHA-256 basé sur le mapping JSON déterministe des datasets et colonnes. |
 
 ## Parameters and Logic
 
@@ -168,6 +169,21 @@ Contrat orchestration actuel:
 Exemple canonique V1:
 
 `clients|Q|2026-07-01|1199`
+
+### `SP_REFRESH_STRUCTURAL_HASH`
+
+```sql
+@dataset_name VARCHAR(100) = NULL  -- NULL = tous les datasets
+```
+
+1. Parcourt tous les datasets actifs (ou uniquement `@dataset_name` si spécifié).
+2. Pour chaque dataset, génère un JSON déterministe incluant:
+	- `dataset_name`, `source_system`, `mapping_version`
+	- Liste ordonnée des colonnes avec leurs propriétés (ordinal, name, types, nullable, keys, tokenization, normalization)
+3. Calcule le hash SHA-256 du JSON.
+4. Met à jour `ctrl.dataset.structural_hash` avec la valeur calculée.
+
+Utilisé pour détecter les changements de structure/mapping et invalider les runs basés sur une version obsolète du schéma.
 
 ## 🔒 Concurrency & Idempotence Guarantees
 
