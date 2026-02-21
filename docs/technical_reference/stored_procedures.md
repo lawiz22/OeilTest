@@ -40,7 +40,7 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 | `SP_Verify_Ctrl_Hash_V1` | 🔒 Intégrité CTRL | **OEIL** | — | Vérifie la cohérence du hash canonique CTRL et met à jour `payload_hash_match` dans `vigie_ctrl`. |
 | `SP_REFRESH_STRUCTURAL_HASH` | 🔄 Refresh hash | **CTRL** | — | Recalcule le hash structurel SHA-256 basé sur le mapping JSON déterministe des datasets et colonnes. |
 | `SP_GET_CONTRACT_STRUCTURE_HASH` (**Azure SQL**) | 🔍 Get contract hash | **CTRL** | — | Génère hash SHA-256 du contrat structurel (ordinal + nom + type normalisé) depuis `ctrl.dataset_column`. |
-| `SP_GET_DETECTED_STRUCTURE_HASH` (**Synapse**) | 🔎 Get detected hash | **QUALITY** | — | Génère hash SHA-256 de la structure détectée (ordinal + nom + type réel) depuis `INFORMATION_SCHEMA.COLUMNS` (external table). |
+| `SP_GET_DETECTED_STRUCTURE_HASH` (**Synapse**) | 🔎 Get detected hash | **QUALITY** | — | Génère hash SHA-256 hex (`VARCHAR(64)`) de la structure détectée (ordinal + nom + type réel) depuis `INFORMATION_SCHEMA.COLUMNS` (external table). |
 | `SP_CHECKSUM_STRUCTURE_COMPARE` (**Azure SQL**) | ✅ Validate structure | **QUALITY** | — | Compare hash contractuel vs détecté. **THROW 50001** si FAIL, sinon PASS et continue. |
 
 ## Parameters and Logic
@@ -225,7 +225,7 @@ Normalisation des types pour garantir comparaison:
 ### `SP_GET_DETECTED_STRUCTURE_HASH` (**Synapse Serverless**)
 
 ```sql
-@dataset_name VARCHAR(100)
+@dataset_name NVARCHAR(150)
 ```
 
 1. Cible la table externe `ext.{dataset_name}_std` (ex: `ext.clients_std`).
@@ -234,8 +234,8 @@ Normalisation des types pour garantir comparaison:
 	- `ordinal` (ordre effectif des colonnes)
 	- `name` (nom effectif)
 	- `type_detected` (type SQL détecté par Synapse)
-4. Calcule le hash SHA-256 du JSON.
-5. Retourne `detected_structure_json` et `detected_structural_hash`.
+4. Calcule le hash SHA-256 du JSON et le convertit en hex (`VARCHAR(64)`).
+5. Retourne `detected_structure_json` et `detected_structural_hash` (hex).
 
 **Note critique**: Cette SP s'exécute **dans Synapse**, pas dans Azure SQL.
 

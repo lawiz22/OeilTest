@@ -31,7 +31,7 @@ Le pipeline qualité `PL_Oeil_Quality_Engine` intègre désormais une **validati
 │    ├─ Appelle ctrl.SP_GET_DETECTED_STRUCTURE_HASH               │
 │    ├─ Lit INFORMATION_SCHEMA.COLUMNS sur ext.{dataset}_std      │
 │    ├─ Génère JSON: [{ordinal, name, type_detected}]             │
-│    └─ Retourne detected_structural_hash (SHA-256)               │
+│    └─ Retourne detected_structural_hash (SHA-256 hex)           │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -65,7 +65,7 @@ Normalise les types `ctrl.dataset_column.type_sink`:
 
 ### `SP_GET_DETECTED_STRUCTURE_HASH`
 
-Utilise directement `INFORMATION_SCHEMA.COLUMNS.DATA_TYPE` (types SQL Synapse natifs).
+Utilise directement `INFORMATION_SCHEMA.COLUMNS.DATA_TYPE` (types SQL Synapse natifs) et retourne un hash SHA-256 en hex (`VARCHAR(64)`).
 
 ## Cas d'usage de validation
 
