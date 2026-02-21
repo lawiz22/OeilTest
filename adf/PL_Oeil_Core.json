@@ -1,0 +1,578 @@
+{
+    "name": "PL_Oeil_Core",
+    "properties": {
+        "activities": [
+            {
+                "name": "SC_Update_In_Progress",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "Pipeline Qualite",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "parameters": [
+                                {
+                                    "name": "ctrl_id",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_ctrl_id",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                }
+                            ],
+                            "type": "Query",
+                            "text": "UPDATE dbo.vigie_ctrl\nSET status_global = 'IN_PROGRESS'\nWHERE ctrl_id = @ctrl_id;\n"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "SP_SLA_Compute_OEIL",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "SP_Set_End_TS_OEIL",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "dbo.SP_Compute_SLA_OEIL",
+                    "storedProcedureParameters": {
+                        "p_ctrl_id": {
+                            "value": {
+                                "value": "@{pipeline().parameters.p_ctrl_id}",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "SP_SLA_Compute_ADF",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Update_In_Progress",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "dbo.SP_Compute_SLA_ADF",
+                    "storedProcedureParameters": {
+                        "p_ctrl_id": {
+                            "value": {
+                                "value": "@{pipeline().parameters.p_ctrl_id}",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "SP_Set_End_TS_OEIL",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "SP_SLA_Compute_ADF",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "SP_Set_End_TS_OEIL",
+                    "storedProcedureParameters": {
+                        "ctrl_id": {
+                            "value": {
+                                "value": "@pipeline().parameters.p_ctrl_id",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "SC_Mark_OEIL_Completed",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Ajuste Alert FLAG",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "parameters": [
+                                {
+                                    "name": "ctrl_id",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_ctrl_id",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                }
+                            ],
+                            "type": "Query",
+                            "text": "UPDATE dbo.vigie_ctrl\nSET status_global = 'COMPLETED'\nWHERE ctrl_id = @ctrl_id;\n"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "SC_Set_OEIL_Bucket",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "SP_SLA_Compute_OEIL",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "parameters": [
+                                {
+                                    "name": "ctrl_id",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_ctrl_id",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                }
+                            ],
+                            "type": "Query",
+                            "text": "UPDATE dbo.vigie_ctrl\nSET sla_bucket =\n    CASE\n        WHEN duration_sec IS NULL\n          OR oeil_sla_expected_sec IS NULL\n          OR oeil_sla_threshold_sec IS NULL\n            THEN 'UNKNOWN'\n\n        WHEN duration_sec <= oeil_sla_expected_sec\n            THEN 'FAST'\n\n        WHEN duration_sec <= oeil_sla_threshold_sec\n            THEN 'SLOW'\n\n        ELSE 'VERY_SLOW'\n    END\nWHERE ctrl_id = @ctrl_id;\n"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "SC_Set_Volume_Check",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "LK_Read_CtrlJson",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "parameters": [
+                                {
+                                    "name": "ctrl_id",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_ctrl_id",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                }
+                            ],
+                            "type": "NonQuery",
+                            "text": "UPDATE dbo.vigie_ctrl\nSET volume_status =\n    CASE\n        WHEN expected_rows IS NULL\n          OR expected_rows = 0\n            THEN 'UNKNOWN'\n\n        WHEN row_count_adf_ingestion_copie_parquet IS NULL\n            THEN 'MISSING'\n\n        WHEN row_count_adf_ingestion_copie_parquet = expected_rows\n            THEN 'OK'\n\n        ELSE 'ANOMALY'\n    END\nWHERE ctrl_id = @ctrl_id;\n"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "SC_Mark_Processed_Ctrl_Index",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Mark_OEIL_Completed",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "parameters": [
+                                {
+                                    "name": "ctrl_id",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_ctrl_id",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                }
+                            ],
+                            "type": "Query",
+                            "text": "UPDATE dbo.ctrl_file_index\nSET\n  processed_flag = 1,\n  processed_ts   = SYSUTCDATETIME()\nWHERE ctrl_id = @ctrl_id;"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "SC_Set_Intelligent_Alert",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Set_OEIL_Bucket",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "parameters": [
+                                {
+                                    "name": "ctrl_id",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_ctrl_id",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                }
+                            ],
+                            "type": "NonQuery",
+                            "text": "UPDATE dbo.vigie_ctrl\nSET\n    /* =========================\n       ALERT LEVEL\n       ========================= */\n    alert_level =\n        CASE\n            WHEN\n                oeil_sla_status = 'FAIL'\n                OR volume_status IN ('ANOMALY', 'LOW')\n                OR adf_sla_status <> 'OK'\n                OR synapse_sla_status <> 'OK'\n            THEN 'CRITICAL'\n\n            WHEN\n                sla_bucket = 'VERY_SLOW'\n                OR volume_status IN ('ANOMALY', 'LOW')\n            THEN 'WARNING'\n\n            WHEN\n                sla_bucket = 'SLOW'\n            THEN 'INFO'\n\n            ELSE 'NO_ALERT'\n        END,\n\n    /* =========================\n       ALERT FLAG\n       ========================= */\n    alert_flag =\n        CASE\n            WHEN\n                oeil_sla_status = 'FAIL'\n                OR volume_status IN ('ANOMALY', 'LOW')\n                OR adf_sla_status <> 'OK'\n                OR synapse_sla_status <> 'OK'\n                OR sla_bucket IN ('SLOW', 'VERY_SLOW')\n            THEN 1\n            ELSE 0\n        END,\n\n    /* =========================\n       ALERT REASON (EXPLICABLE)\n       ========================= */\n    alert_reason =\n        CASE\n            WHEN\n                oeil_sla_status = 'FAIL'\n                OR volume_status IN ('ANOMALY', 'LOW')\n                OR adf_sla_status <> 'OK'\n                OR synapse_sla_status <> 'OK'\n            THEN\n                CONCAT(\n                    'OEIL=', oeil_sla_status,\n                    ' | BUCKET=', sla_bucket,\n                    ' | VOLUME=', COALESCE(volume_status, 'NA'),\n                    ' | ADF=', COALESCE(adf_sla_status, 'NA'),\n                    ' | SYNAPSE=', COALESCE(synapse_sla_status, 'NA')\n                )\n\n            WHEN\n                sla_bucket IN ('SLOW', 'VERY_SLOW')\n            THEN\n                CONCAT(\n                    'OEIL=', oeil_sla_status,\n                    ' | BUCKET=', sla_bucket,\n                    ' | VOLUME=', COALESCE(volume_status, 'OK')\n                )\n\n            ELSE\n                'NO_ALERT'\n        END,\n\n    /* =========================\n       ALERT TIMESTAMP\n       ========================= */\n    alert_ts =\n        CASE\n            WHEN\n                oeil_sla_status = 'FAIL'\n                OR volume_status IN ('ANOMALY', 'LOW')\n                OR adf_sla_status <> 'OK'\n                OR synapse_sla_status <> 'OK'\n                OR sla_bucket IN ('SLOW', 'VERY_SLOW')\n            THEN SYSUTCDATETIME()\n            ELSE NULL\n        END\nWHERE ctrl_id = @ctrl_id;\n"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "SC_Ajuste Alert FLAG",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Set_Intelligent_Alert",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "parameters": [
+                                {
+                                    "name": "ctrl_id",
+                                    "type": "String",
+                                    "value": {
+                                        "value": "@pipeline().parameters.p_ctrl_id",
+                                        "type": "Expression"
+                                    },
+                                    "direction": "Input"
+                                }
+                            ],
+                            "type": "NonQuery",
+                            "text": "UPDATE dbo.vigie_ctrl\nSET alert_flag =\n    CASE\n        WHEN alert_level IN ('WARNING', 'CRITICAL') THEN 1\n        ELSE 0\n    END\nWHERE ctrl_id = @ctrl_id;"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "Pipeline Qualite",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Set_Volume_Check",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PL_Oeil_Quality_Engine",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "p_ctrl_id": {
+                            "value": "@pipeline().parameters.p_ctrl_id",
+                            "type": "Expression"
+                        },
+                        "p_dataset": {
+                            "value": "@split(pipeline().parameters.p_ctrl_id, '_')[0]",
+                            "type": "Expression"
+                        },
+                        "p_environment": {
+                            "value": "@pipeline().parameters.p_environment",
+                            "type": "Expression"
+                        },
+                        "p_periodicity": {
+                            "value": "@activity('LK_Read_CtrlJson').output.firstRow.periodicity",
+                            "type": "Expression"
+                        },
+                        "p_extraction_date": {
+                            "value": "@activity('LK_Read_CtrlJson').output.firstRow.extraction_date",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "LK_Read_CtrlJson",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Set Control_Path",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "JsonSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": true,
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "JsonReadSettings"
+                        }
+                    },
+                    "dataset": {
+                        "referenceName": "DS_Bronze_Ctrl_JSON_V2",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "filePath": {
+                                "value": "@variables('v_control_path')",
+                                "type": "Expression"
+                            }
+                        }
+                    },
+                    "firstRowOnly": true
+                }
+            },
+            {
+                "name": "Set Control_Path",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "policy": {
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "v_control_path",
+                    "value": {
+                        "value": "@concat(\n  split(pipeline().parameters.p_ctrl_id, '_')[0],\n  '/period=',\n  split(pipeline().parameters.p_ctrl_id, '_')[2],\n  '/year=',\n  split(split(pipeline().parameters.p_ctrl_id, '_')[1], '-')[0],\n  '/month=',\n  split(split(pipeline().parameters.p_ctrl_id, '_')[1], '-')[1],\n  '/day=',\n  split(split(pipeline().parameters.p_ctrl_id, '_')[1], '-')[2],\n  '/ctrl/',\n  pipeline().parameters.p_ctrl_id,\n  '.ctrl.json'\n)\n",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "p_control_path": {
+                "type": "string"
+            },
+            "p_ctrl_id": {
+                "type": "string"
+            },
+            "p_dataset": {
+                "type": "string"
+            },
+            "p_periodicity": {
+                "type": "string"
+            },
+            "p_extraction_date": {
+                "type": "string"
+            },
+            "p_environment": {
+                "type": "string"
+            }
+        },
+        "variables": {
+            "v_bronze_data_path": {
+                "type": "String"
+            },
+            "p_parquet_path": {
+                "type": "String"
+            },
+            "v_bronze_path": {
+                "type": "String"
+            },
+            "v_parquet_path": {
+                "type": "String"
+            },
+            "v_dataset": {
+                "type": "String"
+            },
+            "v_periodicity": {
+                "type": "String"
+            },
+            "v_extraction_date": {
+                "type": "String"
+            },
+            "v_control_path": {
+                "type": "String"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-02-19T16:15:30Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
