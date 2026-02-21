@@ -17,7 +17,10 @@
                 "typeProperties": {
                     "source": {
                         "type": "AzureSqlSource",
-                        "sqlReaderQuery": "SELECT \n    d.policy_dataset_id,\n    t.policy_test_id,\n    tt.test_code,\n    tt.requires_synapse,\n    t.column_name,\n    t.frequency,\n    t.threshold_value\nFROM dbo.vigie_policy_dataset d\nJOIN dbo.vigie_policy_test t \n    ON d.policy_dataset_id = t.policy_dataset_id\nJOIN dbo.vigie_policy_test_type tt \n    ON t.test_type_id = tt.test_type_id\nWHERE d.dataset_name = '@{pipeline().parameters.p_dataset}'\nAND d.environment = '@{pipeline().parameters.p_environment}'\nAND d.is_active = 1\nAND t.is_enabled = 1;",
+                        "sqlReaderQuery": {
+                            "value": "SELECT \n    d.policy_dataset_id,\n    t.policy_test_id,\n    tt.test_code,\n    tt.requires_synapse,\n    t.column_name,\n    t.frequency,\n    t.threshold_value\nFROM dbo.vigie_policy_dataset d\nJOIN dbo.vigie_policy_test t \n    ON d.policy_dataset_id = t.policy_dataset_id\nJOIN dbo.vigie_policy_test_type tt \n    ON t.test_type_id = tt.test_type_id\nWHERE d.dataset_name = '@{pipeline().parameters.p_dataset}'\nAND d.environment = '@{pipeline().parameters.p_environment}'\nAND d.is_active = 1\nAND t.is_enabled = 1;",
+                            "type": "Expression"
+                        },
                         "queryTimeout": "02:00:00",
                         "partitionOption": "None"
                     },
@@ -33,7 +36,7 @@
                 "type": "ForEach",
                 "dependsOn": [
                     {
-                        "activity": "Set Start Synapse",
+                        "activity": "SP_Compare_Structure",
                         "dependencyConditions": [
                             "Succeeded"
                         ]
@@ -112,19 +115,31 @@
                                                     "storedProcedureName": "dbo.SP_Insert_VigieIntegrityResult",
                                                     "storedProcedureParameters": {
                                                         "ctrl_id": {
-                                                            "value": "@pipeline().parameters.p_ctrl_id",
+                                                            "value": {
+                                                                "value": "@pipeline().parameters.p_ctrl_id",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "String"
                                                         },
                                                         "dataset_name": {
-                                                            "value": "@pipeline().parameters.p_dataset",
+                                                            "value": {
+                                                                "value": "@pipeline().parameters.p_dataset",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "String"
                                                         },
                                                         "test_code": {
-                                                            "value": "@item().test_code",
+                                                            "value": {
+                                                                "value": "@item().test_code",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "String"
                                                         },
                                                         "column_name": {
-                                                            "value": "@item().column_name",
+                                                            "value": {
+                                                                "value": "@item().column_name",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "String"
                                                         },
                                                         "bronze_value": {
@@ -233,15 +248,24 @@
                                                     "storedProcedureName": "dbo.SP_Insert_VigieIntegrityResult",
                                                     "storedProcedureParameters": {
                                                         "ctrl_id": {
-                                                            "value": "@pipeline().parameters.p_ctrl_id",
+                                                            "value": {
+                                                                "value": "@pipeline().parameters.p_ctrl_id",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "String"
                                                         },
                                                         "dataset_name": {
-                                                            "value": "@pipeline().parameters.p_dataset",
+                                                            "value": {
+                                                                "value": "@pipeline().parameters.p_dataset",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "String"
                                                         },
                                                         "test_code": {
-                                                            "value": "@item().test_code",
+                                                            "value": {
+                                                                "value": "@item().test_code",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "String"
                                                         },
                                                         "column_name": {
@@ -301,8 +325,166 @@
                                                             "type": "Datetime"
                                                         },
                                                         "synapse_end_ts": {
-                                                            "value": "@utcNow()",
+                                                            "value": {
+                                                                "value": "@utcNow()",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "Datetime"
+                                                        }
+                                                    }
+                                                },
+                                                "linkedServiceName": {
+                                                    "referenceName": "LS_AzureSQL_Vigie",
+                                                    "type": "LinkedServiceReference"
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "value": "CHECKSUM",
+                                        "activities": [
+                                            {
+                                                "name": "SC_SYNAPSE_CHECKSUM",
+                                                "type": "Script",
+                                                "dependsOn": [],
+                                                "policy": {
+                                                    "timeout": "0.12:00:00",
+                                                    "retry": 0,
+                                                    "retryIntervalInSeconds": 30,
+                                                    "secureOutput": false,
+                                                    "secureInput": false
+                                                },
+                                                "userProperties": [],
+                                                "linkedServiceName": {
+                                                    "referenceName": "LS_Synapse_Vigie",
+                                                    "type": "LinkedServiceReference"
+                                                },
+                                                "typeProperties": {
+                                                    "scripts": [
+                                                        {
+                                                            "type": "Query",
+                                                            "text": {
+                                                                "value": "EXEC ctrl.SP_OEIL_CHECKSUM\n    @bronze_path = '@{variables('v_bronze_path')}',\n    @parquet_path = '@{variables('v_parquet_path')}',\n    @column_name = '@{item().column_name}'",
+                                                                "type": "Expression"
+                                                            }
+                                                        }
+                                                    ],
+                                                    "scriptBlockExecutionTimeout": "02:00:00"
+                                                }
+                                            },
+                                            {
+                                                "name": "SP_Insert_Vigie_CHECKSUM",
+                                                "type": "SqlServerStoredProcedure",
+                                                "dependsOn": [
+                                                    {
+                                                        "activity": "SC_SYNAPSE_CHECKSUM",
+                                                        "dependencyConditions": [
+                                                            "Succeeded"
+                                                        ]
+                                                    }
+                                                ],
+                                                "policy": {
+                                                    "timeout": "0.12:00:00",
+                                                    "retry": 0,
+                                                    "retryIntervalInSeconds": 30,
+                                                    "secureOutput": false,
+                                                    "secureInput": false
+                                                },
+                                                "userProperties": [],
+                                                "typeProperties": {
+                                                    "storedProcedureName": "dbo.SP_Insert_VigieIntegrityResult",
+                                                    "storedProcedureParameters": {
+                                                        "ctrl_id": {
+                                                            "value": {
+                                                                "value": "@pipeline().parameters.p_ctrl_id",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "String"
+                                                        },
+                                                        "dataset_name": {
+                                                            "value": {
+                                                                "value": "@pipeline().parameters.p_dataset",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "String"
+                                                        },
+                                                        "test_code": {
+                                                            "value": {
+                                                                "value": "@item().test_code",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "String"
+                                                        },
+                                                        "column_name": {
+                                                            "value": {
+                                                                "value": "@item().column_name",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "String"
+                                                        },
+                                                        "bronze_value": {
+                                                            "value": {
+                                                                "value": "0",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "Int32"
+                                                        },
+                                                        "bronze_aux_value": {
+                                                            "value": {
+                                                                "value": "0",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "Int32"
+                                                        },
+                                                        "parquet_value": {
+                                                            "value": {
+                                                                "value": "0",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "Int32"
+                                                        },
+                                                        "parquet_aux_value": {
+                                                            "value": {
+                                                                "value": "0",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "Int32"
+                                                        },
+                                                        "status": {
+                                                            "value": {
+                                                                "value": "@activity('SC_SYNAPSE_CHECKSUM').output.resultSets[0].rows[0].integrity_status",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "String"
+                                                        },
+                                                        "execution_time_ms": {
+                                                            "value": {
+                                                                "value": "@coalesce(int(activity('SC_SYNAPSE_CHECKSUM').output.executionDuration), 0)",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "Int32"
+                                                        },
+                                                        "synapse_start_ts": {
+                                                            "value": {
+                                                                "value": "@variables('v_synapse_start_ts')",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "Datetime"
+                                                        },
+                                                        "synapse_end_ts": {
+                                                            "value": {
+                                                                "value": "@utcNow()",
+                                                                "type": "Expression"
+                                                            },
+                                                            "type": "Datetime"
+                                                        },
+                                                        "observed_value_text": {
+                                                            "value": "@activity('SC_SYNAPSE_CHECKSUM').output.resultSets[0].rows[0].bronze_checksum",
+                                                            "type": "String"
+                                                        },
+                                                        "reference_value_text": {
+                                                            "value": "@activity('SC_SYNAPSE_CHECKSUM').output.resultSets[0].rows[0].parquet_checksum",
+                                                            "type": "String"
                                                         }
                                                     }
                                                 },
@@ -392,7 +574,10 @@
                     "storedProcedureName": "SP_Update_VigieCtrl_FromIntegrity",
                     "storedProcedureParameters": {
                         "ctrl_id": {
-                            "value": "@pipeline().parameters.p_ctrl_id",
+                            "value": {
+                                "value": "@pipeline().parameters.p_ctrl_id",
+                                "type": "Expression"
+                            },
                             "type": "String"
                         }
                     }
@@ -407,7 +592,7 @@
                 "type": "SqlServerStoredProcedure",
                 "dependsOn": [
                     {
-                        "activity": "SP_Update_VigieCtrl_FromIntegrity",
+                        "activity": "SP_Compute_Quality_Summary",
                         "dependencyConditions": [
                             "Succeeded"
                         ]
@@ -500,30 +685,183 @@
                 "userProperties": [],
                 "typeProperties": {
                     "variableName": "v_synapse_start_ts",
-                    "value": "@utcNow()"
+                    "value": {
+                        "value": "@utcNow()",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "SP_Compute_Quality_Summary",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "SP_Update_VigieCtrl_FromIntegrity",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "dbo.SP_Compute_Quality_Summary",
+                    "storedProcedureParameters": {
+                        "ctrl_id": {
+                            "value": {
+                                "value": "@pipeline().parameters.p_ctrl_id",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "SP_Compare_Structure",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "SC_Get_Detected_Hash",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "ctrl.SP_CHECKSUM_STRUCTURE_COMPARE",
+                    "storedProcedureParameters": {
+                        "ctrl_id": {
+                            "value": "@pipeline().parameters.p_ctrl_id",
+                            "type": "String"
+                        },
+                        "dataset_name": {
+                            "value": "@pipeline().parameters.p_dataset",
+                            "type": "String"
+                        },
+                        "contract_hash": {
+                            "value": {
+                                "value": "@activity('LK_Get_Contract_Hash').output.firstRow.contract_structural_hash",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        },
+                        "detected_hash": {
+                            "value": "@activity('SC_Get_Detected_Hash').output.resultSets[0].rows[0].detected_structural_hash",
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL_Vigie",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "SC_Get_Detected_Hash",
+                "type": "Script",
+                "dependsOn": [
+                    {
+                        "activity": "LK_Get_Contract_Hash",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "linkedServiceName": {
+                    "referenceName": "LS_Synapse_Vigie",
+                    "type": "LinkedServiceReference"
+                },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "type": "Query",
+                            "text": "EXEC ctrl.SP_GET_DETECTED_STRUCTURE_HASH '@{pipeline().parameters.p_dataset}'"
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            },
+            {
+                "name": "LK_Get_Contract_Hash",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Set Start Synapse",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[ctrl].[SP_GET_CONTRACT_STRUCTURE_HASH]",
+                        "storedProcedureParameters": {
+                            "dataset_name": {
+                                "type": "String",
+                                "value": "@{pipeline().parameters.p_dataset}"
+                            }
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "DS_SQL_VigieCtrl",
+                        "type": "DatasetReference"
+                    }
                 }
             }
         ],
         "parameters": {
             "p_ctrl_id": {
-                "type": "string",
-                "defaultValue": "clients_2026-05-01_Q"
+                "type": "string"
             },
             "p_dataset": {
-                "type": "string",
-                "defaultValue": "clients"
+                "type": "string"
             },
             "p_environment": {
-                "type": "string",
-                "defaultValue": "DEV"
+                "type": "string"
             },
             "p_periodicity": {
-                "type": "string",
-                "defaultValue": "Q"
+                "type": "string"
             },
             "p_extraction_date": {
-                "type": "string",
-                "defaultValue": "2026-05-01"
+                "type": "string"
             }
         },
         "variables": {
@@ -537,6 +875,8 @@
                 "type": "String"
             }
         },
-        "annotations": []
-    }
+        "annotations": [],
+        "lastPublishTime": "2026-02-19T05:08:03Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
 }

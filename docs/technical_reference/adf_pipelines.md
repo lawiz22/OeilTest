@@ -305,8 +305,12 @@ Pipeline de contrôle qualité piloté par policy SQL. Il lit les tests actifs p
 2. **Set `v_bronze_path`**
 3. **Set `v_parquet_path`**
 4. **Set `v_synapse_start_ts`**
-5. **ForEach_Policy** sur les tests actifs
-6. **Switch_Policy** par `test_code`
+5. **LK_Get_Contract_Hash** (`ctrl.SP_GET_CONTRACT_STRUCTURE_HASH`)
+6. **SC_Get_Detected_Hash** (`ctrl.SP_GET_DETECTED_STRUCTURE_HASH`)
+7. **SP_Compare_Structure** (`ctrl.SP_CHECKSUM_STRUCTURE_COMPARE`)
+	 - Bloque le pipeline immédiatement si `CHECKSUM_STRUCTURE` en `FAIL`
+8. **ForEach_Policy** sur les tests actifs
+9. **Switch_Policy** par `test_code`
 	 - Cas `MIN_MAX`
 		 - `SC_SYNAPSE_MIN_MAX` → `EXEC ctrl.SP_OEIL_MIN_MAX ...`
 		 - `SP_Insert_Vigie` → `EXEC dbo.SP_Insert_VigieIntegrityResult ...`
@@ -314,12 +318,17 @@ Pipeline de contrôle qualité piloté par policy SQL. Il lit les tests actifs p
 		 - `SC_SYNAPSE_ROWCOUNT` → `EXEC ctrl.SP_OEIL_ROWCOUNT ...`
 		 - `SP_Insert_Vigie_ROWCOUNT` → `EXEC dbo.SP_Insert_VigieIntegrityResult ...`
 		 - `synapse_start_ts` / `synapse_end_ts` sont persistés au moment de l'insert `ROW_COUNT`
-7. **`SP_Update_VigieCtrl_FromIntegrity`**
+	 - Cas `CHECKSUM`
+		 - `SC_SYNAPSE_CHECKSUM` → `EXEC ctrl.SP_OEIL_CHECKSUM ...`
+		 - `SP_Insert_Vigie_CHECKSUM` → persiste `observed_value_text` / `reference_value_text`
+10. **`SP_Update_VigieCtrl_FromIntegrity`**
 	 - Synchronise les résultats `ROW_COUNT` d'intégrité vers `dbo.vigie_ctrl`
 	 - Alimente `synapse_start_ts`, `synapse_end_ts`, `synapse_duration_sec`, `row_count_adf_ingestion_copie_parquet`, `status`
-8. **`SP_Compute_SLA_SYNAPSE`**
+11. **`SP_Compute_Quality_Summary`**
+	 - Agrège les résultats qualité et met à jour `quality_status_global` + `quality_tests_*`
+12. **`SP_Compute_SLA_SYNAPSE`**
 	 - Calcule le SLA Synapse à partir de la durée consolidée
-9. **`SC_Compute_Synapse_Cost_CAD_copy1`**
+13. **`SC_Compute_Synapse_Cost_CAD_copy1`**
 	 - Estime le coût Synapse et met à jour `synapse_cost_estimated_cad`
 
 ### Diagramme Mermaid (flow)
@@ -330,29 +339,38 @@ flowchart TD
 		B --> C[Derived: v_bronze_path]
 		C --> D[Derived: v_parquet_path]
 		D --> E[Set v_synapse_start_ts]
-		E --> F[ForEach_Policy]
-		F --> G{Switch test_code}
+		E --> F[LK_Get_Contract_Hash]
+		F --> G[SC_Get_Detected_Hash]
+		G --> H[SP_Compare_Structure]
+		H --> I[ForEach_Policy]
+		I --> J{Switch test_code}
 
-		G -->|MIN_MAX| H[SC_SYNAPSE_MIN_MAX\nEXEC ctrl.SP_OEIL_MIN_MAX]
-		H --> I[SP_Insert_Vigie\nEXEC dbo.SP_Insert_VigieIntegrityResult]
+		J -->|MIN_MAX| K[SC_SYNAPSE_MIN_MAX\nEXEC ctrl.SP_OEIL_MIN_MAX]
+		K --> L[SP_Insert_Vigie\nEXEC dbo.SP_Insert_VigieIntegrityResult]
 
-		G -->|ROW_COUNT| J[SC_SYNAPSE_ROWCOUNT\nEXEC ctrl.SP_OEIL_ROWCOUNT]
-		J --> K[SP_Insert_Vigie_ROWCOUNT\nEXEC dbo.SP_Insert_VigieIntegrityResult]
+		J -->|ROW_COUNT| M[SC_SYNAPSE_ROWCOUNT\nEXEC ctrl.SP_OEIL_ROWCOUNT]
+		M --> N[SP_Insert_Vigie_ROWCOUNT\nEXEC dbo.SP_Insert_VigieIntegrityResult]
 
-		I --> L[SP_Update_VigieCtrl_FromIntegrity]
-		K --> L
-		L --> M[SP_Compute_SLA_SYNAPSE]
-		M --> N[SC_Compute_Synapse_Cost_CAD]
+		J -->|CHECKSUM| O[SC_SYNAPSE_CHECKSUM\nEXEC ctrl.SP_OEIL_CHECKSUM]
+		O --> P[SP_Insert_Vigie_CHECKSUM\nEXEC dbo.SP_Insert_VigieIntegrityResult]
 
-		N --> O[(Output: dbo.vigie_ctrl Synapse SLA/Cost)]
-		I --> P[(Output: dbo.vigie_integrity_result)]
-		K --> P
+		L --> Q[SP_Update_VigieCtrl_FromIntegrity]
+		N --> Q
+		P --> Q
+		Q --> R[SP_Compute_Quality_Summary]
+		R --> S[SP_Compute_SLA_SYNAPSE]
+		S --> T[SC_Compute_Synapse_Cost_CAD]
+
+		T --> U[(Output: dbo.vigie_ctrl Synapse SLA/Cost)]
+		L --> V[(Output: dbo.vigie_integrity_result)]
+		N --> V
+		P --> V
 ```
 
 ### Résultat attendu
 
 - Une ligne par test exécuté dans `dbo.vigie_integrity_result`.
-- Colonnes clés alimentées: `ctrl_id` (`p_ctrl_id`), `dataset_name` (`p_dataset`), `test_code`, `column_name`, `min_value`, `max_value`, `expected_value`, `delta_value`, `status`, `execution_time_ms`, `created_at`.
+- Colonnes clés alimentées: `ctrl_id` (`p_ctrl_id`), `dataset_name` (`p_dataset`), `test_code`, `column_name`, `observed_value_num`, `observed_value_aux_num`, `reference_value_num`, `reference_value_aux_num`, `observed_value_text`, `reference_value_text`, `delta_value`, `status`, `execution_time_ms`, `created_at`.
 
 ### Input / Output Contract (audit)
 
@@ -366,10 +384,14 @@ flowchart TD
 | `v_bronze_path` | Derived | Pattern source CSV Bronze |
 | `v_parquet_path` | Derived | Pattern source Parquet Standardized |
 | `v_synapse_start_ts` | Derived | Start timestamp de la phase Synapse |
-| `Lookup Policy` | Derived | Liste des tests actifs (`ROW_COUNT`, `MIN_MAX`, etc.) |
+| `Lookup Policy` | Derived | Liste des tests actifs (`ROW_COUNT`, `MIN_MAX`, `CHECKSUM`, etc.) |
+| `LK_Get_Contract_Hash` | Derived | Hash structure contractuelle (Azure SQL) |
+| `SC_Get_Detected_Hash` | Derived | Hash structure détectée (Synapse) |
+| `SP_Compare_Structure` | Output | Gate structurel (`CHECKSUM_STRUCTURE`) avant exécution des tests |
 | `dbo.vigie_integrity_result` | Output | Une ligne persistée par test exécuté |
 | `SP_Update_VigieCtrl_FromIntegrity` | Output | Synchronisation des métriques d'intégrité vers `vigie_ctrl` |
-| `dbo.vigie_ctrl` | Output | Colonnes Synapse enrichies (`synapse_*`, `status`, rowcount) + synthèse qualité (`quality_status_global`, `quality_tests_*`) |
+| `SP_Compute_Quality_Summary` | Output | Agrégation des statuts de qualité (`quality_status_global`, `quality_tests_*`) |
+| `dbo.vigie_ctrl` | Output | Colonnes Synapse enrichies (`synapse_*`, `status`, rowcount) + synthèse qualité |
 | `synapse_cost_estimated_cad` | Output | Coût Synapse estimé sur le run |
 | `status` | Output | `PASS` / `FAIL` (retour Synapse) |
 | `delta_value` | Output | Écart calculé (0 attendu sur run nominal) |
