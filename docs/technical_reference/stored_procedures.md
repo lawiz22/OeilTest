@@ -352,7 +352,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-	A[Inputs: ctrl_id/dataset/test + observed/reference + timestamps Synapse] --> B[Compute delta = ABS(observed-reference)]
+	A[Inputs: ctrl_id dataset test observed reference timestamps Synapse] --> B[Compute delta as absolute difference]
 	B --> C[Sécuriser synapse_start_ts/synapse_end_ts]
 	C --> D[INSERT ligne dbo.vigie_integrity_result]
 	D --> E[(Output: trace d'intégrité persistée)]
