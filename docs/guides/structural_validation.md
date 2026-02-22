@@ -29,7 +29,7 @@ Le pipeline qualité `PL_Oeil_Quality_Engine` intègre désormais une **validati
 ┌─────────────────────────────────────────────────────────────────┐
 │ 2️⃣ SC_GET_DETECTED_STRUCTURE_HASH (Synapse)                    │
 │    ├─ Appelle ctrl.SP_GET_DETECTED_STRUCTURE_HASH               │
-│    ├─ Lit INFORMATION_SCHEMA.COLUMNS sur ext.{dataset}_std      │
+│    ├─ Lit INFORMATION_SCHEMA.COLUMNS sur ext.{dataset}_pq       │
 │    ├─ Génère JSON: [{ordinal, name, type_detected}]             │
 │    └─ Retourne detected_structural_hash (SHA-256 hex)           │
 └─────────────────────────────────────────────────────────────────┘
