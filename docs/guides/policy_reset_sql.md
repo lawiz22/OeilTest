@@ -11,7 +11,7 @@ Le script couvre 2 opérations distinctes :
    - `dbo.vigie_policy_test`
 2. **Reset + seed du catalogue de types de test**
    - `dbo.vigie_policy_test_type`
-3. **Migration schéma policy pour checksum multi-level**
+3. **Migration schéma policy pour DDS / hash**
   - ajout colonnes dans `dbo.vigie_policy_test` :
     - `checksum_level`
     - `hash_algorithm`
@@ -39,7 +39,7 @@ Effet:
 - reset `vigie_policy_test` et `vigie_policy_dataset`,
 - reseed IDs,
 - seed datasets DEV/PROD,
-- seed tests `ROW_COUNT` + `MIN_MAX` + `CHECKSUM` pour `DEV`.
+- seed tests `ROW_COUNT` + `MIN_MAX` + `DISTRIBUTED_SIGNATURE` pour `DEV`.
 
 ### Mode B — Reset catalogue des types de test
 
@@ -47,7 +47,7 @@ Exécuter uniquement le bloc final :
 
 - `DELETE/RESEED` sur `vigie_policy_test`
 - `DELETE/RESEED` sur `vigie_policy_test_type`
-- `INSERT` des types (`ROW_COUNT`, `MIN_MAX`, `CHECKSUM`, `NULL_COUNT`, `RUN_COMPARISON`)
+- `INSERT` des types (`ROW_COUNT`, `MIN_MAX`, `DISTRIBUTED_SIGNATURE`, `NULL_COUNT`, `RUN_COMPARISON`)
 
 Ensuite, **relancer Mode A** pour recréer `vigie_policy_test`.
 
@@ -77,21 +77,21 @@ avec :
     - accounts -> `account_id`
     - transactions -> `transaction_id`
     - contracts -> `contract_id`
-- `CHECKSUM`
+- `DISTRIBUTED_SIGNATURE`
   - `frequency = 'DAILY'`
   - `column_name` mappée par dataset (même mapping que `MIN_MAX`)
-  - `checksum_level = 1`
+  - `checksum_level = 1` (compatibilité legacy)
   - `hash_algorithm = 'SHA256'`
-  - `column_list = NULL`, `order_by_column = NULL` (niveau 1)
+  - `column_list = NULL`, `order_by_column = NULL` (mode DDS simple)
 
-  ## Support checksum multi-level (migration)
+  ## Support DDS / hash (migration)
 
-  Le bloc `ALTER TABLE` en fin de `Policy.sql` ajoute les colonnes nécessaires au pilotage des checksums avancés.
+  Le bloc `ALTER TABLE` en fin de `Policy.sql` ajoute les colonnes nécessaires au pilotage des stratégies hash/DDS avancées.
 
-  - `checksum_level` : niveau de checksum (1/2/3 selon stratégie)
+  - `checksum_level` : niveau de stratégie hash (legacy, conservé pour compatibilité)
   - `hash_algorithm` : algorithme utilisé (`SHA256`, etc.)
-  - `column_list` : colonnes utilisées pour un hash row-level déterministe
-  - `order_by_column` : colonne d’ordre stable pour les niveaux 2/3
+  - `column_list` : colonnes utilisées pour un hash déterministe
+  - `order_by_column` : colonne d’ordre stable pour exécution déterministe
 
   Recommandation : garder un script **idempotent** (test `COL_LENGTH`) pour pouvoir rejouer la migration sans erreur.
 
@@ -131,7 +131,7 @@ JOIN dbo.vigie_policy_test_type tt
 ORDER BY d.dataset_name, d.environment, tt.test_code;
 ```
 
-### D. Vérifier les colonnes checksum (schema)
+### D. Vérifier les colonnes hash/DDS (schema)
 
 ```sql
 SELECT 

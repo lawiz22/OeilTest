@@ -61,6 +61,8 @@ High-level overview of components (ADF, SQL, Synapse) and data flow.
 ### 📖 Guides
 - **[Power BI Dashboard](guides/powerbi_dashboard.md)**: Understanding the monitoring dashboard.
 - **[Design Decisions](guides/design_decisions.md)**: Rationale behind key architectural choices.
+- **[FAQ Stratégique](guides/faq_strategique.md)**: Positionnement de L’ŒIL vs outils Azure/Purview/Dynatrace.
+- **[DDS Strategy](guides/dds_strategy.md)**: Choix DDS (DEV) et positionnement PROD avec Synapse Serverless.
 - **[Release Checklist](guides/release_checklist.md)**: Step-by-step runbook for demo/release execution.
 - **[Demo Run End-to-End](guides/demo_run_end_to_end.md)**: Step-by-step walkthrough with screenshots.
 - **[Policy Reset SQL](guides/policy_reset_sql.md)**: Comment réinitialiser et reseeder les tables `vigie_policy_*`.

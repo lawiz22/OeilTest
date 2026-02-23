@@ -31,8 +31,8 @@ vigie_policy_table          vigie_policy_test
     *   `max_synapse_cost_usd` : Budget maximum alloué par run.
 
 2.  **vigie_policy_test** : Liste des tests activés.
-    *   `test_type_id` : Référence au type de test (Row Count, Checksum, etc.).
-    *   `frequency` : Périodicité d'exécution (ex: Checksum quotidien serait trop lourd, on met WEEKLY).
+  *   `test_type_id` : Référence au type de test (Row Count, Min/Max, Distributed Signature, etc.).
+  *   `frequency` : Périodicité d'exécution (ex: DDS quotidien en DEV, ciblé/optimisé en PROD).
     *   `threshold_value` : Seuil de tolérance (ex: 5% d'écart max).
 
 ## Export JSON
@@ -54,10 +54,18 @@ La policy complète est exportable en JSON pour être stockée dans le Data Lake
       "frequency": "DAILY",
       "threshold_delta_percent": 5
     },
-    "checksum": {
+    "min_max": {
+      "enabled": true,
+      "column": "account_id",
+      "min": 100000,
+      "max": 999999,
+      "frequency": "DAILY"
+    },
+    "distributed_signature": {
       "enabled": true,
       "column": "account_id",
       "algorithm": "SHA256",
+      "components": "COUNT|MIN|MAX|SUM|SUM_CHECKSUM|SUM_BINARY_CHECKSUM",
       "frequency": "WEEKLY"
     }
   }

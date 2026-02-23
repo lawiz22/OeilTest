@@ -257,7 +257,7 @@ Normalisation des types pour garantir comparaison:
 3. **Si FAIL**: `THROW 50001` → bloque le pipeline immédiatement.
 4. **Si PASS**: retourne résumé et continue.
 
-**Rôle critique**: Point de contrôle **pré-qualité**. Si la structure ne match pas (ordre colonnes, types, noms), le pipeline s'arrête **avant** les tests ROW_COUNT/MIN_MAX/CHECKSUM pour éviter erreurs downstream.
+**Rôle critique**: Point de contrôle **pré-qualité**. Si la structure ne match pas (ordre colonnes, types, noms), le pipeline s'arrête **avant** les tests ROW_COUNT/MIN_MAX/DISTRIBUTED_SIGNATURE pour éviter erreurs downstream.
 
 ## 🔒 Concurrency & Idempotence Guarantees
 

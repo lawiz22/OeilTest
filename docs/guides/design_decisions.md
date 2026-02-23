@@ -19,7 +19,7 @@ L'ŒIL a été conçu avec des contraintes spécifiques de coût, traçabilité 
 **Rationale** :
 *   Synapse facture au volume scanné (TB).
 *   ADF peut faire des validations simples (row count, file size) gratuitement.
-*   On réserve Synapse pour les validations complexes (checksum contenu, distribution statistique) qui nécessitent de lire tout le fichier.
+*   On réserve Synapse pour les validations complexes (signature distribuée dataset, distribution statistique) qui nécessitent de lire tout le fichier.
 
 ### Comparatif des approches de validation (coût / complexité / latence)
 
@@ -42,7 +42,7 @@ Dans une grande organisation, le pattern cible recommandé est le suivant :
 | Min / Max | SQL |
 | Null count | SQL |
 | Simple delta | SQL |
-| Checksum massif | Synapse |
+| Signature distribuée dataset (DDS) | Synapse |
 | Agrégation lourde multi-partition | Synapse |
 | Traitement distribué complexe | Spark |
 
@@ -85,13 +85,14 @@ Le comportement du framework doit s'adapter au cycle de vie du développement.
 ### En DEV : "Fail Fast, Watch Closely"
 *   **Validation stricte** : On veut casser le pipeline si la donnée n'est pas parfaite.
 *   **Fréquence élevée** : Tests systématiques à chaque run.
-*   **Checksum fréquent** : Validation de contenu agressive pour détecter les régressions de code.
+*   **DDS fréquent** : Validation de contenu distribuée (`COUNT|MIN|MAX|SUM` + agrégats hash) pour détecter les régressions de code.
 *   **Monitoring agressif** : Le développeur doit voir immédiatement l'impact de ses changements.
 *   **Observation des coûts** : Mesure précise de l'impact financier des nouvelles transformations.
 
 ### En PROD : "Business Continuity & Efficiency"
 *   **Tests essentiels seulement** : On ne valide que ce qui protège le business.
-*   **Fréquence optimisée** : Checksums lourds uniquement hebdomadaires ou mensuels.
+*   **Hash classique retiré** : La stratégie hash historique n’est plus retenue pour la prod.
+*   **Fréquence optimisée** : Priorité à `ROW_COUNT`, `MIN_MAX` et contrôles de structure; DDS activée selon criticité/coût.
 *   **Compute contrôlé** : Usage de Synapse restreint pour maîtriser la facture cloud.
 *   **Pas d’effet sur la performance métier** : Les contrôles ne doivent pas retarder la mise à disposition des données.
 *   **Policy adaptée** : Les seuils sont ajustés selon le comportement réel observé ("drift" naturel accepté si non critique).
@@ -114,191 +115,9 @@ Clarification des statuts :
 - Risque de dérive si la policy est mal configurée.
 - Coût Synapse sous-estimé si exécution multi-partitions.
 
-## 9. FAQ stratégique — “Pourquoi ne pas utiliser un module Azure existant ?”
+## 9. Annexes séparées
 
-### Réponse courte
+Les sections suivantes ont été déplacées dans des documents dédiés pour garder ce fichier centré sur les décisions d'architecture:
 
-Il n’existe pas, à ce jour, de service unique qui couvre exactement le périmètre de L’ŒIL.
-
-Azure propose des briques puissantes (monitoring, catalogage, observabilité technique), mais pas un framework run-level qui combine simultanément:
-
-- Contrat métier (`CTRL`) et validation déclarée vs observée.
-- SLA multi-moteur (`ADF` + `Synapse` + orchestration ŒIL).
-- Policy dynamique SQL-first appliquée à l’exécution.
-- Snapshot JSON immuable et hash de non-répudiation.
-- Estimation de coût Synapse par contrôle.
-- Bucket métier (`FAST` / `SLOW` / `VERY_SLOW`).
-- Alerting contextualisé métier.
-
-👉 L’ŒIL est un framework d’orchestration qualité orienté exécution, pas un simple outil de monitoring.
-
-### Azure Purview — Différence stratégique
-
-**Purview = gouvernance et catalogage global.**
-
-Purview couvre très bien:
-
-- Data catalog
-- Lineage
-- Discovery
-- Classification (PII, etc.)
-- Profiling qualité statique
-
-Purview ne cible pas nativement:
-
-- Comparaison `CTRL` vs réalité observée run par run
-- SLA ingestion multi-moteur opérationnel
-- Rowcount contractuel au contrôle
-- Alerting orienté exécution pipeline
-- Estimation coût Synapse par run
-- Policy dynamique appliquée à chaud à l’exécution
-
-👉 Purview = gouvernance transverse.
-👉 L’ŒIL = contrôle opérationnel run-level.
-
-### Dynatrace — Différence stratégique
-
-**Dynatrace = APM / performance système applicative.**
-
-Dynatrace couvre:
-
-- Monitoring infrastructure
-- Monitoring services
-- Traces applicatives
-- CPU / mémoire / latence
-
-Dynatrace ne couvre pas nativement:
-
-- Validation de volume métier
-- Contrôle d’intégrité data contractuel
-- Comparaison `expected_rows` vs `actual_rows`
-- SLA orienté logique métier data
-- Contrôles `MIN/MAX`, checksum ou règles data lake
-
-👉 Dynatrace = santé système.
-👉 L’ŒIL = qualité et conformité data.
-
-### Azure natif (Monitor + Alerts) — Positionnement
-
-Azure Monitor / Log Analytics:
-
-- Donne des métriques techniques robustes
-- Ne porte pas, seul, la sémantique métier dataset
-- Ne gère pas nativement un contrat `expected_rows`
-- Ne pilote pas, seul, une policy dynamique par dataset
-
-👉 Azure fournit les briques.
-👉 L’ŒIL orchestre, contextualise et consolide ces briques en décision métier actionnable.
-
-## 10. Checksum (Hash) — stratégie (en cours)
-
-Cette section formalise la trajectoire checksum pour L’ŒIL. Le sujet est en cours d’industrialisation, avec montée progressive de la profondeur de contrôle.
-
-### Niveaux possibles
-
-#### Niveau 1 — Hash clé unique
-
-Exemple:
-
-`HASH(client_id)`
-
-Usage:
-
-- Détection d’ajout/suppression de clés
-- Contrôle léger à faible coût
-
-#### Niveau 2 — Hash colonnes critiques
-
-Exemple:
-
-`HASH(client_id + statut + pays)`
-
-Usage:
-
-- Validation métier ciblée
-- Détection de dérives sur attributs sensibles
-
-#### Niveau 3 — Hash ligne complète
-
-Exemple:
-
-`HASH(CONCAT_WS('|', col1, col2, col3, col4))`
-
-Usage:
-
-- Intégrité forte au niveau enregistrement
-- Détection d’altérations non visibles par rowcount/min-max
-
-#### Niveau 4 — Hash dataset complet ordonné
-
-Exemple:
-
-`HASH_AGG(row_hash ORDER BY key)`
-
-Usage:
-
-- Garantie forte d’identité dataset
-- Validation globale de non-altération entre deux états
-
-### Cas pratiques pour L’ŒIL
-
-#### En DEV
-
-- Checksum ligne complète
-- Fréquence `DAILY`
-- Synapse autorisé
-
-#### En PROD
-
-- Checksum clé unique `DAILY`
-- Checksum ligne complète `WEEKLY`
-- Activation pilotée par policy
-
-### Points critiques (implémentation)
-
-#### 1) Normalisation obligatoire
-
-Avant hash, appliquer systématiquement:
-
-- `NULL` → chaîne vide
-- `TRIM`
-- format date ISO
-- format décimal stable
-- `UPPER()` sur les textes métier si nécessaire
-
-Sans normalisation stricte, risque élevé de faux positifs.
-
-#### 2) Ordre déterministe
-
-Toujours imposer:
-
-`ORDER BY primary_key`
-
-Sans ordre stable, le hash agrégé peut varier à contenu identique.
-
-#### 3) Types flottants
-
-Les `FLOAT` peuvent varier légèrement selon moteur/conversion.
-
-Toujours caster en chaîne formatée fixe avant calcul du hash.
-
-### Positionnement policy dans L’ŒIL
-
-Pattern recommandé: 3 niveaux de policy sélectionnables par dataset/environnement.
-
-| Level | Type | Fréquence |
-|---|---|---|
-| `LIGHT` | Key hash | `DAILY` |
-| `STANDARD` | Critical columns hash | `DAILY` |
-| `STRICT` | Full row hash | `WEEKLY` |
-
-La policy choisit dynamiquement le niveau selon criticité, coût et fréquence cible.
-
-### Comparaison stratégique des contrôles
-
-| Contrôle | Détecte ajout | Détecte modification | Détecte corruption |
-|---|---|---|---|
-| Rowcount | ✅ | ❌ | ❌ |
-| Min/Max | ❌ | partiel | ❌ |
-| Checksum clé | ✅ | ❌ | ✅ |
-| Checksum ligne | ✅ | ✅ | ✅ |
+- [FAQ stratégique — Positionnement L'ŒIL vs Azure/Purview/Dynatrace](faq_strategique.md)
+- [DDS (Distributed Dataset Signature) — stratégie DEV et positionnement PROD](dds_strategy.md)
