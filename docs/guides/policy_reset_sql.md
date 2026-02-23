@@ -2,6 +2,11 @@
 
 Guide d’utilisation du script [Policy.sql](../../Policy.sql) pour réinitialiser et reseeder les tables de policy.
 
+> [!WARNING]
+> **Déprécié (usage recommandé limité).**
+> Pour la gestion courante des policies (création, édition, export), utiliser en priorité le **[Oeil Policy Manager](policy_manager.md)**.
+> Ce document et `Policy.sql` restent conservés pour les besoins de requêtes SQL directes, maintenance avancée et dépannage.
+
 ## Objectif
 
 Le script couvre 2 opérations distinctes :

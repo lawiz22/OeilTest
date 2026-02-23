@@ -66,7 +66,7 @@ High-level overview of components (ADF, SQL, Synapse) and data flow.
 - **[Oeil Policy Manager](guides/policy_manager.md)**: UI/CLI Python pour gérer, exporter et auditer les policies.
 - **[Release Checklist](guides/release_checklist.md)**: Step-by-step runbook for demo/release execution.
 - **[Demo Run End-to-End](guides/demo_run_end_to_end.md)**: Step-by-step walkthrough with screenshots.
-- **[Policy Reset SQL](guides/policy_reset_sql.md)**: Comment réinitialiser et reseeder les tables `vigie_policy_*`.
+- **[Policy Reset SQL (Deprecated)](guides/policy_reset_sql.md)**: Script SQL conservé pour maintenance avancée; privilégier **Oeil Policy Manager** pour l’usage courant.
 
 ---
 

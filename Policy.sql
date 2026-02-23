@@ -1,3 +1,11 @@
+/*
+DEPRECATED (usage recommandé limité)
+Pour la gestion courante des policies (création/édition/export), utiliser le Policy Manager:
+    - docs/guides/policy_manager.md
+
+Ce script SQL est conservé pour les requêtes SQL directes, la maintenance avancée et le dépannage.
+*/
+
 BEGIN TRANSACTION;
 
 -- 1️⃣ Supprimer les tests (table enfant)
