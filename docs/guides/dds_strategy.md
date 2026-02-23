@@ -2,7 +2,7 @@
 
 ## Décision retenue
 
-La stratégie **hash classique** n’est pas retenue comme mécanisme principal en PROD.
+La stratégie **hash en PROD** reste **activable** et sera tranchée en comité selon les résultats des tests DEV.
 
 La stratégie retenue est la **DDS (Distributed Dataset Signature)**, en priorité pour les environnements DEV et pour les cas où un contrôle distribué est pertinent sous Synapse Serverless.
 
@@ -48,9 +48,9 @@ Ces composantes sont concaténées puis hashées en SHA-256 pour produire la sig
 
 ### PROD
 
-- Hash historique retiré de la stratégie principale.
 - `ROW_COUNT` + `MIN_MAX` + validation structurelle restent la base.
 - DDS activée de façon ciblée selon criticité dataset, coût et policy.
+- Les contrôles hash additionnels sont activables sur décision comité, en fonction des résultats DEV et du coût observé.
 
 ## Limites connues DDS
 

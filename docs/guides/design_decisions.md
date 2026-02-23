@@ -91,8 +91,8 @@ Le comportement du framework doit s'adapter au cycle de vie du développement.
 
 ### En PROD : "Business Continuity & Efficiency"
 *   **Tests essentiels seulement** : On ne valide que ce qui protège le business.
-*   **Hash classique retiré** : La stratégie hash historique n’est plus retenue pour la prod.
-*   **Fréquence optimisée** : Priorité à `ROW_COUNT`, `MIN_MAX` et contrôles de structure; DDS activée selon criticité/coût.
+*   **Hash en PROD activable** : L’activation d’un contrôle hash en production est soumise à une décision en comité.
+*   **Fréquence optimisée** : Priorité à `ROW_COUNT`, `MIN_MAX` et contrôles de structure; DDS/hash activés selon criticité, coût et résultats observés en DEV.
 *   **Compute contrôlé** : Usage de Synapse restreint pour maîtriser la facture cloud.
 *   **Pas d’effet sur la performance métier** : Les contrôles ne doivent pas retarder la mise à disposition des données.
 *   **Policy adaptée** : Les seuils sont ajustés selon le comportement réel observé ("drift" naturel accepté si non critique).
