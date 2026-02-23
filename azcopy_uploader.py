@@ -1,21 +1,37 @@
+import os
+from pathlib import Path
 import subprocess
 import sys
+
+
+def _load_dotenv(dotenv_path: Path) -> None:
+    if not dotenv_path.exists():
+        return
+
+    for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 # =====================================================
 # CONFIG
 # =====================================================
 SOURCE = r"C:\Users\Louis-Martin Richard\PycharmProjects\OeilTest\output\bronze"
 
-DEST = (
-    "https://lawizlake.blob.core.windows.net/banquelaw"
-    "?sp=racwdle"
-    "&st=2026-02-23T01:05:12Z"
-    "&se=2026-03-02T09:20:12Z"
-    "&spr=https"
-    "&sv=2024-11-04" 
-    "&sr=c"
-    "&sig=tn9LB%2FILapBJhVBVUYvTj0mo%2Fz8HISj%2F460AZIsdI78%3D"
-)
+_load_dotenv(Path(__file__).resolve().parent / "python" / ".env")
+
+DEST = os.getenv("OEIL_AZCOPY_DEST", "")
+
+if not DEST:
+    print("❌ Missing OEIL_AZCOPY_DEST in python/.env")
+    sys.exit(1)
 
 # =====================================================
 # AZCOPY COMMAND
@@ -33,7 +49,10 @@ cmd = [
 ]
 
 print("🚀 Upload Bronze → ADLS (directory scoped)")
-print(" ".join(cmd))
+safe_dest = DEST.split("&sig=")[0] + "&sig=***" if "&sig=" in DEST else DEST
+safe_cmd = cmd.copy()
+safe_cmd[3] = safe_dest
+print(" ".join(safe_cmd))
 
 # =====================================================
 # EXEC
