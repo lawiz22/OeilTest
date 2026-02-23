@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Datasets</h2>
+
+<!-- Grid of active policy datasets -->
+<div class="row">
+    {% for d in datasets %}
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        {{ d.dataset_name }}
+                    </h5>
+                    <p class="text-muted mb-2">
+                        Environment: {{ d.environment }}
+                    </p>
+
+                    <a href="/dataset/{{ d.policy_dataset_id }}" 
+                       class="btn btn-primary btn-sm">
+                        View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

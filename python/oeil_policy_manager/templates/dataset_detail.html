@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Header: dataset context + actions -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>{{ dataset.dataset_name }}</h2>
+        <p class="text-muted">
+            Environment: {{ dataset.environment }}
+        </p>
+    </div>
+
+    <div>
+        <form method="post" 
+              action="/dataset/{{ dataset.policy_dataset_id }}/export"
+              style="display:inline;">
+            <button class="btn btn-success">
+                📦 Export to Lake
+            </button>
+        </form>
+
+        <a href="/dataset/{{ dataset.policy_dataset_id }}/download"
+           class="btn btn-outline-secondary">
+            ⬇ Download JSON
+        </a>
+    </div>
+</div>
+
+
+<!-- Tests table -->
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between">
+        <span>Tests</span>
+        <button class="btn btn-sm btn-primary">
+            ➕ Add Test
+        </button>
+    </div>
+
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Test Code</th>
+                    <th>Column</th>
+                    <th>Frequency</th>
+                    <th>Status</th>
+                    <th style="width:150px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tests %}
+                <tr>
+                    <td>{{ t.test_code }}</td>
+                    <td>{{ t.column_name or "-" }}</td>
+                    <td>{{ t.frequency }}</td>
+                    <td>
+                        {% if t.is_enabled %}
+                            <span class="badge bg-success">Enabled</span>
+                        {% else %}
+                            <span class="badge bg-danger">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary">
+                            Edit
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger">
+                            Disable
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<a href="/" class="btn btn-link mt-3">
+    ← Back
+</a>
+
+{% endblock %}
