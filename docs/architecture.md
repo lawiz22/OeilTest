@@ -49,7 +49,7 @@ graph TD
 |---|---|
 | **Azure Data Factory (ADF)** | Orchestrateur principal. Déclenche les ingestions, appelle les procédures stockées de contrôle, et gère le flux d'exécution. |
 | **Azure SQL Database** | **Source de vérité**. Contient les contrôles (`vigie_ctrl`), les règles (`vigie_policy_*`), l'historique d'exécution et la synthèse qualité par run (`quality_status_global`, `quality_tests_*`). C'est le cerveau du framework. |
-| **Synapse Serverless** | Moteur de compute à la demande. Utilisé ponctuellement pour valider des règles complexes (checksums, distributions) sur les fichiers du Data Lake. |
+| **Synapse Serverless** | Moteur de compute à la demande. Utilisé ponctuellement pour valider des règles complexes (ROW_COUNT, MIN_MAX, signatures distribuées) sur les fichiers du Data Lake. |
 | **Log Analytics (KQL)** | Audit trail et métriques fine-grained. ADF interroge KQL via `WebActivity` pour récupérer des durées précises et des volumes d'ingestion. |
 | **ADLS Gen2** | Stockage des données (Bronze CSV, Silver Parquet) et des artefacts de contrôle (`.json`, `.done`). |
 

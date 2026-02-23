@@ -275,28 +275,46 @@ def extract_dataset(
         variance_applied = True
 
     # =================================================
-    # INTEGRITY CALCULATIONS
+    # 🧠 DDS ENTERPRISE MINIMAL
     # =================================================
     key_values = [row[key_column] for row in generated_rows]
 
     if key_values:
+
+        row_count = len(key_values)
         min_value = min(key_values)
         max_value = max(key_values)
+        sum_value = sum(key_values)
 
-        # Deterministic sorted checksum
-        sorted_values = sorted(str(v) for v in key_values)
-        concat_string = "|".join(sorted_values)
+        signature_input = f"{row_count}|{min_value}|{max_value}|{sum_value}"
 
-        checksum_sha256 = hashlib.sha256(
-            concat_string.encode("utf-8")
+        dataset_signature = hashlib.sha256(
+            signature_input.encode("utf-8")
         ).hexdigest()
+
+        # ==============================
+        # 🔎 DEBUG SECTION
+        # ==============================
+        print("--------------------------------------------------")
+        print("DDS ENTERPRISE DEBUG —", table)
+        print("ROW COUNT:", row_count)
+        print("MIN:", min_value)
+        print("MAX:", max_value)
+        print("SUM:", sum_value)
+        print("SIGNATURE INPUT STRING:")
+        print(signature_input)
+        print("FINAL SHA256 SIGNATURE:")
+        print(dataset_signature)
+        print("--------------------------------------------------")
+
     else:
         min_value = None
         max_value = None
-        checksum_sha256 = None
+        sum_value = None
+        dataset_signature = None
 
     # =================================================
-    # CANONICAL PAYLOAD + HASH (unchanged)
+    # CANONICAL PAYLOAD + HASH
     # =================================================
     canonical_payload = f"{table}|{period}|{date_str}|{expected_rows}"
     payload_hash = hashlib.sha256(
@@ -311,48 +329,31 @@ def extract_dataset(
         "dataset": table,
         "periodicity": period,
         "extraction_date": date_str,
-
-        # -------------------------------
-        # Volume (existing logic intact)
-        # -------------------------------
         "expected_rows": expected_rows,
         "actual_rows": actual_rows,
         "variance_applied": variance_applied,
         "variance_delta": expected_rows - actual_rows,
-
-        # -------------------------------
-        # Integrity (NEW SECTION)
-        # -------------------------------
         "integrity": {
             "min_max": {
                 "column": key_column,
                 "min": min_value,
                 "max": max_value
             },
-            "checksum": {
+            "distributed_signature": {
                 "column": key_column,
                 "algorithm": "SHA256",
-                "value": checksum_sha256
+                "components": "COUNT|MIN|MAX|SUM",
+                "value": dataset_signature
             }
         },
-
-        # -------------------------------
-        # Payload Hash (official)
-        # -------------------------------
         "payload_canonical": canonical_payload,
         "payload_hash_sha256": payload_hash,
         "payload_hash_version": HASH_VERSION,
-
-        # -------------------------------
-        # Metadata
-        # -------------------------------
         "source_system": source_system,
         "created_ts": datetime.utcnow().isoformat(),
-
         "pipeline_name": None,
         "trigger_name": None,
         "pipeline_run_id": None,
-
         "status": "CREATED",
         "start_ts": None,
         "end_ts": None
@@ -361,35 +362,9 @@ def extract_dataset(
     with open(ctrl_file, "w", encoding="utf-8") as f:
         json.dump(ctrl, f, indent=2)
 
-    ctrl_path = (
-        f"{table}/period={period}/"
-        f"year={extraction_date.year}/"
-        f"month={extraction_date.month:02d}/"
-        f"day={extraction_date.day:02d}/"
-        f"ctrl/{ctrl_file.name}"
-    )
-
-    ctrl_index_mode = get_ctrl_index_mode()
-
-    if ctrl_index_mode == "disabled":
-        print("[INFO] CTRL index insert skipped (OEIL_CTRL_INDEX_MODE=disabled)")
-    else:
-        try:
-            insert_ctrl_index_sql(
-                ctrl_id=ctrl["ctrl_id"],
-                dataset=table,
-                ctrl_path=ctrl_path
-            )
-        except pyodbc.Error as exc:
-            if ctrl_index_mode == "best_effort":
-                print(f"[WARN] CTRL index insert failed (best_effort): {exc}")
-            else:
-                raise
-
     print(
         f"[OK] {table} | {date_str} | {period} | "
         f"actual={actual_rows} expected={expected_rows} "
-        f"{'[WARN] VARIANCE' if variance_applied else 'OK'} "
-        f"| min={min_value} max={max_value}"
+        f"{'[WARN VARIANCE]' if variance_applied else '[OK]'} "
+        f"| DDS={dataset_signature[:12]}..."
     )
-

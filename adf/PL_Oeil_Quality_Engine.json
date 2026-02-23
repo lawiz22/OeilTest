@@ -84,7 +84,7 @@
                                                         {
                                                             "type": "Query",
                                                             "text": {
-                                                                "value": "EXEC ctrl.SP_OEIL_MIN_MAX\n    @bronze_path = '@{variables('v_bronze_path')}',\n    @parquet_path = '@{variables('v_parquet_path')}',\n    @column_name = '@{item().column_name}'\n",
+                                                                "value": "EXEC ctrl.SP_OEIL_MIN_MAX_PQ\n    @dataset_name = '@{pipeline().parameters.p_dataset}',\n    @column_name  = '@{pipeline().parameters.p_minmax_column}',\n    @expected_min = @{pipeline().parameters.p_minmax_min},\n    @expected_max = @{pipeline().parameters.p_minmax_max},\n    @year  = '@{substring(pipeline().parameters.p_extraction_date,0,4)}',\n    @month = '@{substring(pipeline().parameters.p_extraction_date,5,2)}',\n    @day   = '@{substring(pipeline().parameters.p_extraction_date,8,2)}';",
                                                                 "type": "Expression"
                                                             }
                                                         }
@@ -144,14 +144,14 @@
                                                         },
                                                         "bronze_value": {
                                                             "value": {
-                                                                "value": "@float(activity('SC_SYNAPSE_MIN_MAX').output.resultSets[0].rows[0].bronze_min)",
+                                                                "value": "@float(activity('SC_SYNAPSE_MIN_MAX').output.resultSets[0].rows[0].contract_min)",
                                                                 "type": "Expression"
                                                             },
                                                             "type": "Double"
                                                         },
                                                         "bronze_aux_value": {
                                                             "value": {
-                                                                "value": "@float(activity('SC_SYNAPSE_MIN_MAX').output.resultSets[0].rows[0].bronze_max)",
+                                                                "value": "@float(activity('SC_SYNAPSE_MIN_MAX').output.resultSets[0].rows[0].contract_max)",
                                                                 "type": "Expression"
                                                             },
                                                             "type": "Double"
@@ -217,7 +217,7 @@
                                                         {
                                                             "type": "Query",
                                                             "text": {
-                                                                "value": "EXEC ctrl.SP_OEIL_ROWCOUNT\n    @bronze_path = '@{variables('v_bronze_path')}',\n    @parquet_path = '@{variables('v_parquet_path')}'",
+                                                                "value": "EXEC ctrl.SP_OEIL_ROWCOUNT_PQ\n    @dataset_name  = '@{pipeline().parameters.p_dataset}',\n    @expected_rows = @{pipeline().parameters.p_expected_rows},\n    @year  = '@{substring(pipeline().parameters.p_extraction_date,0,4)}',\n    @month = '@{substring(pipeline().parameters.p_extraction_date,5,2)}',\n    @day   = '@{substring(pipeline().parameters.p_extraction_date,8,2)}';",
                                                                 "type": "Expression"
                                                             }
                                                         }
@@ -277,7 +277,7 @@
                                                         },
                                                         "bronze_value": {
                                                             "value": {
-                                                                "value": "@float(activity('SC_SYNAPSE_ROWCOUNT').output.resultSets[0].rows[0].bronze_count)",
+                                                                "value": "@int(activity('SC_SYNAPSE_ROWCOUNT').output.resultSets[0].rows[0].contract_count)",
                                                                 "type": "Expression"
                                                             },
                                                             "type": "Int32"
@@ -291,7 +291,7 @@
                                                         },
                                                         "parquet_value": {
                                                             "value": {
-                                                                "value": "@float(activity('SC_SYNAPSE_ROWCOUNT').output.resultSets[0].rows[0].parquet_count)",
+                                                                "value": "@int(activity('SC_SYNAPSE_ROWCOUNT').output.resultSets[0].rows[0].parquet_count)",
                                                                 "type": "Expression"
                                                             },
                                                             "type": "Int32"
@@ -341,10 +341,10 @@
                                         ]
                                     },
                                     {
-                                        "value": "CHECKSUM",
+                                        "value": "DISTRIBUTED_SIGNATURE",
                                         "activities": [
                                             {
-                                                "name": "SC_SYNAPSE_CHECKSUM",
+                                                "name": "SP_OEIL_DISTRIBUTED_SIGNATURE_PQ",
                                                 "type": "Script",
                                                 "dependsOn": [],
                                                 "policy": {
@@ -364,7 +364,7 @@
                                                         {
                                                             "type": "Query",
                                                             "text": {
-                                                                "value": "EXEC ctrl.SP_OEIL_CHECKSUM\n    @bronze_path = '@{variables('v_bronze_path')}',\n    @parquet_path = '@{variables('v_parquet_path')}',\n    @column_name = '@{item().column_name}'",
+                                                                "value": "EXEC ctrl.SP_OEIL_DISTRIBUTED_SIGNATURE_PQ\n    @dataset_name = '@{pipeline().parameters.p_dataset}',\n    @column_name = '@{item().column_name}',\n    @expected_signature = '@{pipeline().parameters.p_expected_signature}',\n    @year  = '@{substring(pipeline().parameters.p_extraction_date,0,4)}',\n    @month = '@{substring(pipeline().parameters.p_extraction_date,5,2)}',\n    @day   = '@{substring(pipeline().parameters.p_extraction_date,8,2)}'",
                                                                 "type": "Expression"
                                                             }
                                                         }
@@ -373,11 +373,11 @@
                                                 }
                                             },
                                             {
-                                                "name": "SP_Insert_Vigie_CHECKSUM",
+                                                "name": "SP_Insert_Vigie_DISTRIBUTED_SIGNATURE",
                                                 "type": "SqlServerStoredProcedure",
                                                 "dependsOn": [
                                                     {
-                                                        "activity": "SC_SYNAPSE_CHECKSUM",
+                                                        "activity": "SP_OEIL_DISTRIBUTED_SIGNATURE_PQ",
                                                         "dependencyConditions": [
                                                             "Succeeded"
                                                         ]
@@ -452,14 +452,14 @@
                                                         },
                                                         "status": {
                                                             "value": {
-                                                                "value": "@activity('SC_SYNAPSE_CHECKSUM').output.resultSets[0].rows[0].integrity_status",
+                                                                "value": "@activity('SP_OEIL_DISTRIBUTED_SIGNATURE_PQ').output.resultSets[0].rows[0].integrity_status",
                                                                 "type": "Expression"
                                                             },
                                                             "type": "String"
                                                         },
                                                         "execution_time_ms": {
                                                             "value": {
-                                                                "value": "@coalesce(int(activity('SC_SYNAPSE_CHECKSUM').output.executionDuration), 0)",
+                                                                "value": "@coalesce(int(activity('SP_OEIL_DISTRIBUTED_SIGNATURE_PQ').output.executionDuration), 0)",
                                                                 "type": "Expression"
                                                             },
                                                             "type": "Int32"
@@ -479,11 +479,17 @@
                                                             "type": "Datetime"
                                                         },
                                                         "observed_value_text": {
-                                                            "value": "@activity('SC_SYNAPSE_CHECKSUM').output.resultSets[0].rows[0].bronze_checksum",
+                                                            "value": {
+                                                                "value": "@string(activity('SP_OEIL_DISTRIBUTED_SIGNATURE_PQ').output.resultSets[0].rows[0]['parquet_signature'])",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "String"
                                                         },
                                                         "reference_value_text": {
-                                                            "value": "@activity('SC_SYNAPSE_CHECKSUM').output.resultSets[0].rows[0].parquet_checksum",
+                                                            "value": {
+                                                                "value": "@string(activity('SP_OEIL_DISTRIBUTED_SIGNATURE_PQ').output.resultSets[0].rows[0]['contract_signature'])",
+                                                                "type": "Expression"
+                                                            },
                                                             "type": "String"
                                                         }
                                                     }
@@ -861,6 +867,21 @@
                 "type": "string"
             },
             "p_extraction_date": {
+                "type": "string"
+            },
+            "p_minmax_column": {
+                "type": "string"
+            },
+            "p_minmax_min": {
+                "type": "float"
+            },
+            "p_minmax_max": {
+                "type": "float"
+            },
+            "p_expected_rows": {
+                "type": "int"
+            },
+            "p_expected_signature": {
                 "type": "string"
             }
         },

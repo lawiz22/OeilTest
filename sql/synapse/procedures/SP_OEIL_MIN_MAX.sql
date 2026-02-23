@@ -1,56 +1,57 @@
-CREATE PROCEDURE ctrl.SP_OEIL_MIN_MAX
-    @bronze_path NVARCHAR(500),
-    @parquet_path NVARCHAR(500),
-    @column_name NVARCHAR(128)
+CREATE OR ALTER PROCEDURE ctrl.SP_OEIL_MIN_MAX_PQ
+(
+    @dataset_name NVARCHAR(150),
+    @column_name NVARCHAR(128),
+    @expected_min FLOAT,
+    @expected_max FLOAT,
+    @year NVARCHAR(4),
+    @month NVARCHAR(2),
+    @day NVARCHAR(2)
+)
 AS
 BEGIN
-
     DECLARE @sql NVARCHAR(MAX);
 
     SET @sql = '
-    WITH bronze_data AS (
         SELECT
-            MIN(' + QUOTENAME(@column_name) + ') AS bronze_min,
-            MAX(' + QUOTENAME(@column_name) + ') AS bronze_max
+            MIN(TRY_CAST(' + QUOTENAME(@column_name) + ' AS FLOAT)) AS detected_min,
+            MAX(TRY_CAST(' + QUOTENAME(@column_name) + ' AS FLOAT)) AS detected_max
         FROM OPENROWSET(
-            BULK ''' + @bronze_path + ''',
-            DATA_SOURCE = ''ds_adls_bronze'',
-            FORMAT = ''CSV'',
-            FIRSTROW = 2
-        )
-        WITH (
-            client_id INT,
-            nom VARCHAR(100),
-            prenom VARCHAR(100),
-            pays VARCHAR(10),
-            date_eff DATE
-        ) AS rows
-    ),
-    parquet_data AS (
-        SELECT
-            MIN(' + QUOTENAME(@column_name) + ') AS parquet_min,
-            MAX(' + QUOTENAME(@column_name) + ') AS parquet_max
-        FROM OPENROWSET(
-            BULK ''' + @parquet_path + ''',
+            BULK ''standardized/' + @dataset_name + 
+            '/year=' + @year + 
+            '/month=' + @month + 
+            '/day=' + @day + 
+            '/*.parquet'',
             DATA_SOURCE = ''ds_adls_standardized'',
             FORMAT = ''PARQUET''
-        ) AS rows
-    )
-    SELECT
-        b.bronze_min,
-        b.bronze_max,
-        p.parquet_min,
-        p.parquet_max,
-        CASE 
-            WHEN b.bronze_min = p.parquet_min
-             AND b.bronze_max = p.parquet_max
-            THEN ''PASS''
-            ELSE ''FAIL''
-        END AS integrity_status
-    FROM bronze_data b
-    CROSS JOIN parquet_data p;
+        ) AS rows;
     ';
 
-    EXEC sp_executesql @sql;
+    CREATE TABLE #t (
+        detected_min FLOAT,
+        detected_max FLOAT
+    );
 
+    INSERT INTO #t
+    EXEC(@sql);
+
+    DECLARE @detected_min FLOAT;
+    DECLARE @detected_max FLOAT;
+
+    SELECT 
+        @detected_min = detected_min,
+        @detected_max = detected_max
+    FROM #t;
+
+    SELECT
+        @detected_min AS parquet_min,
+        @detected_max AS parquet_max,
+        @expected_min AS contract_min,
+        @expected_max AS contract_max,
+        CASE 
+            WHEN @detected_min = @expected_min
+             AND @detected_max = @expected_max
+            THEN 'OK'
+            ELSE 'ANOMALY'
+        END AS integrity_status;
 END;

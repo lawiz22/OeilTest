@@ -288,6 +288,11 @@ Pipeline de contrôle qualité piloté par policy SQL. Il lit les tests actifs p
 | `p_environment` | string | Environnement policy (`DEV`/`PROD`) |
 | `p_periodicity` | string | Périodicité (`Q`, `H`, `M`, etc.) |
 | `p_extraction_date` | string | Date d'extraction (`YYYY-MM-DD`) |
+| `p_minmax_column` | string | Colonne à tester pour `MIN_MAX` |
+| `p_minmax_min` | float | Minimum contractuel attendu |
+| `p_minmax_max` | float | Maximum contractuel attendu |
+| `p_expected_rows` | int | Nombre de lignes attendu pour `ROW_COUNT` |
+| `p_expected_signature` | string | Signature attendue pour `DISTRIBUTED_SIGNATURE` |
 
 ### Variables calculées
 
@@ -312,15 +317,15 @@ Pipeline de contrôle qualité piloté par policy SQL. Il lit les tests actifs p
 8. **ForEach_Policy** sur les tests actifs
 9. **Switch_Policy** par `test_code`
 	 - Cas `MIN_MAX`
-		 - `SC_SYNAPSE_MIN_MAX` → `EXEC ctrl.SP_OEIL_MIN_MAX ...`
+		 - `SC_SYNAPSE_MIN_MAX` → `EXEC ctrl.SP_OEIL_MIN_MAX_PQ ...`
 		 - `SP_Insert_Vigie` → `EXEC dbo.SP_Insert_VigieIntegrityResult ...`
 	 - Cas `ROW_COUNT`
-		 - `SC_SYNAPSE_ROWCOUNT` → `EXEC ctrl.SP_OEIL_ROWCOUNT ...`
+		 - `SC_SYNAPSE_ROWCOUNT` → `EXEC ctrl.SP_OEIL_ROWCOUNT_PQ ...`
 		 - `SP_Insert_Vigie_ROWCOUNT` → `EXEC dbo.SP_Insert_VigieIntegrityResult ...`
 		 - `synapse_start_ts` / `synapse_end_ts` sont persistés au moment de l'insert `ROW_COUNT`
-	 - Cas `CHECKSUM`
-		 - `SC_SYNAPSE_CHECKSUM` → `EXEC ctrl.SP_OEIL_CHECKSUM ...`
-		 - `SP_Insert_Vigie_CHECKSUM` → persiste `observed_value_text` / `reference_value_text`
+	- Cas `DISTRIBUTED_SIGNATURE`
+		 - `SP_OEIL_DISTRIBUTED_SIGNATURE_PQ` (activity Script) → `EXEC ctrl.SP_OEIL_DISTRIBUTED_SIGNATURE_PQ ...`
+		 - `SP_Insert_Vigie_DISTRIBUTED_SIGNATURE` → persiste `observed_value_text` / `reference_value_text`
 10. **`SP_Update_VigieCtrl_FromIntegrity`**
 	 - Synchronise les résultats `ROW_COUNT` d'intégrité vers `dbo.vigie_ctrl`
 	 - Alimente `synapse_start_ts`, `synapse_end_ts`, `synapse_duration_sec`, `row_count_adf_ingestion_copie_parquet`, `status`
@@ -335,7 +340,7 @@ Pipeline de contrôle qualité piloté par policy SQL. Il lit les tests actifs p
 
 ```mermaid
 flowchart TD
-		A[Inputs: p_ctrl_id, p_dataset, p_environment, p_periodicity, p_extraction_date] --> B[Lookup Policy Azure SQL]
+		A[Inputs: p_ctrl_id, p_dataset, p_environment, p_periodicity, p_extraction_date + p_minmax_* + p_expected_*] --> B[Lookup Policy Azure SQL]
 		B --> C[Derived: v_bronze_path]
 		C --> D[Derived: v_parquet_path]
 		D --> E[Set v_synapse_start_ts]
@@ -345,14 +350,14 @@ flowchart TD
 		H --> I[ForEach_Policy]
 		I --> J{Switch test_code}
 
-		J -->|MIN_MAX| K[SC_SYNAPSE_MIN_MAX\nEXEC ctrl.SP_OEIL_MIN_MAX]
+		J -->|MIN_MAX| K[SC_SYNAPSE_MIN_MAX\nEXEC ctrl.SP_OEIL_MIN_MAX_PQ]
 		K --> L[SP_Insert_Vigie\nEXEC dbo.SP_Insert_VigieIntegrityResult]
 
-		J -->|ROW_COUNT| M[SC_SYNAPSE_ROWCOUNT\nEXEC ctrl.SP_OEIL_ROWCOUNT]
+		J -->|ROW_COUNT| M[SC_SYNAPSE_ROWCOUNT\nEXEC ctrl.SP_OEIL_ROWCOUNT_PQ]
 		M --> N[SP_Insert_Vigie_ROWCOUNT\nEXEC dbo.SP_Insert_VigieIntegrityResult]
 
-		J -->|CHECKSUM| O[SC_SYNAPSE_CHECKSUM\nEXEC ctrl.SP_OEIL_CHECKSUM]
-		O --> P[SP_Insert_Vigie_CHECKSUM\nEXEC dbo.SP_Insert_VigieIntegrityResult]
+		J -->|DISTRIBUTED_SIGNATURE| O[SP_OEIL_DISTRIBUTED_SIGNATURE_PQ\nEXEC ctrl.SP_OEIL_DISTRIBUTED_SIGNATURE_PQ]
+		O --> P[SP_Insert_Vigie_DISTRIBUTED_SIGNATURE\nEXEC dbo.SP_Insert_VigieIntegrityResult]
 
 		L --> Q[SP_Update_VigieCtrl_FromIntegrity]
 		N --> Q
@@ -381,10 +386,13 @@ flowchart TD
 | `p_environment` | Input | Scope des policies actives |
 | `p_periodicity` | Input | Fréquence logique du run |
 | `p_extraction_date` | Input | Date de référence pour construire les paths Bronze/Parquet |
+| `p_minmax_column`, `p_minmax_min`, `p_minmax_max` | Input | Paramètres contractuels dédiés au test `MIN_MAX` |
+| `p_expected_rows` | Input | Paramètre contractuel dédié au test `ROW_COUNT` |
+| `p_expected_signature` | Input | Signature contractuelle attendue pour `DISTRIBUTED_SIGNATURE` |
 | `v_bronze_path` | Derived | Pattern source CSV Bronze |
 | `v_parquet_path` | Derived | Pattern source Parquet Standardized |
 | `v_synapse_start_ts` | Derived | Start timestamp de la phase Synapse |
-| `Lookup Policy` | Derived | Liste des tests actifs (`ROW_COUNT`, `MIN_MAX`, `CHECKSUM`, etc.) |
+| `Lookup Policy` | Derived | Liste des tests actifs (`ROW_COUNT`, `MIN_MAX`, `DISTRIBUTED_SIGNATURE`, etc.) |
 | `LK_Get_Contract_Hash` | Derived | Hash structure contractuelle (Azure SQL) |
 | `SC_Get_Detected_Hash` | Derived | Hash structure détectée (Synapse) |
 | `SP_Compare_Structure` | Output | Gate structurel (`CHECKSUM_STRUCTURE`) avant exécution des tests |

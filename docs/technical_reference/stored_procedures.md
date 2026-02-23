@@ -12,7 +12,7 @@ Les procédures stockées sont les points d'intégration pour les calculateurs d
 
 **Synapse Serverless** (pool SQL):
 - Procédures d'**inspection** des fichiers Parquet/CSV
-- Tests de **qualité** (ROW_COUNT, MIN_MAX, CHECKSUM)
+- Tests de **qualité** (ROW_COUNT, MIN_MAX_PQ, DISTRIBUTED_SIGNATURE_PQ)
 - Détection **structurelle** runtime
 - Localisation: `sql/synapse/procedures/`
 
@@ -110,7 +110,7 @@ Termes canoniques utilisés dans la documentation : `p_ctrl_id`, `p_dataset`, `p
 2.  Sécurise `synapse_start_ts` / `synapse_end_ts` (fallback `SYSUTCDATETIME()` et correction si `end < start`).
 3.  Insère la ligne dans `dbo.vigie_integrity_result` avec :
 	- valeurs numériques (`observed_value_num`, `reference_value_num`, etc.)
-	- valeurs texte (`observed_value_text`, `reference_value_text`) pour les tests non numériques (ex: checksum)
+	- valeurs texte (`observed_value_text`, `reference_value_text`) pour les tests non numériques (ex: distributed signature)
 	- statut, timing et timestamps.
 
 ### `SP_Compute_Quality_Summary`
@@ -288,7 +288,7 @@ flowchart TD
     J --> K{contract_hash == detected_hash ?}
     K -->|PASS| L[INSERT vigie_integrity_result<br/>test_code=CHECKSUM_STRUCTURE<br/>status=PASS]
     L --> M[Continue vers ForEach_Policy]
-    M --> N[Tests qualité: ROW_COUNT, MIN_MAX, CHECKSUM...]
+	M --> N[Tests qualité: ROW_COUNT, MIN_MAX_PQ, DISTRIBUTED_SIGNATURE_PQ...]
     
     K -->|FAIL| O[INSERT vigie_integrity_result<br/>status=FAIL]
     O --> P[THROW 50001:<br/>CHECKSUM_STRUCTURE FAILED]
@@ -382,27 +382,31 @@ Le pipeline de qualité est opérationnel avec **2 policies activées** :
 - Azure SQL : `dbo.SP_Insert_VigieIntegrityResult`
 - Azure SQL : `dbo.SP_Update_VigieCtrl_FromIntegrity`
 - Synapse : `ctrl.SP_OEIL_ROWCOUNT`
-- Synapse : `ctrl.SP_OEIL_MIN_MAX`
-- Synapse : `ctrl.SP_OEIL_CHECKSUM`
+- Synapse : `ctrl.SP_OEIL_MIN_MAX_PQ`
+- Synapse : `ctrl.SP_OEIL_DISTRIBUTED_SIGNATURE_PQ`
 
-### Procédure Synapse ajoutée (checksum)
+### Procédure Synapse ajoutée (distributed signature)
 
-`ctrl.SP_OEIL_CHECKSUM` compare un hash SHA-256 déterministe Bronze vs Parquet pour une colonne donnée.
+`ctrl.SP_OEIL_DISTRIBUTED_SIGNATURE_PQ` calcule une signature distribuée (COUNT, MIN, MAX, SUM, SUM(CHECKSUM), SUM(BINARY_CHECKSUM)) puis compare son hash SHA-256 à la signature attendue.
 
 Signature:
 
 ```sql
-ctrl.SP_OEIL_CHECKSUM(
-	@bronze_path NVARCHAR(500),
-	@parquet_path NVARCHAR(500),
-	@column_name NVARCHAR(150)
+ctrl.SP_OEIL_DISTRIBUTED_SIGNATURE_PQ(
+	@dataset_name NVARCHAR(100),
+	@column_name NVARCHAR(128),
+	@expected_signature NVARCHAR(64),
+	@year NVARCHAR(4),
+	@month NVARCHAR(2),
+	@day NVARCHAR(2)
 )
 ```
 
 Sortie:
 
-- `bronze_checksum`
-- `parquet_checksum`
+- `signature_input_string`
+- `parquet_signature`
+- `contract_signature`
 - `integrity_status` (`PASS` / `FAIL`)
 
 ### Résultats observés (exemple validé)
@@ -417,7 +421,7 @@ Exemple sur `ctrl_id = clients_2026-05-01_Q` :
 Notes :
 
 - Les résultats sont persistés dans `dbo.vigie_integrity_result` via la nouvelle structure `observed/reference`.
-- Les tests textuels (ex: `CHECKSUM`) renseignent `observed_value_text` et `reference_value_text`.
+- Les tests textuels (ex: `DISTRIBUTED_SIGNATURE`) renseignent `observed_value_text` et `reference_value_text`.
 - Si `synapse_start_ts` ou `synapse_end_ts` est absent, la SP les initialise à `SYSUTCDATETIME()`.
 - Le détail d'orchestration (JSON pipeline + screenshot) sera documenté dans une section dédiée dès intégration des artefacts ADF.
 
