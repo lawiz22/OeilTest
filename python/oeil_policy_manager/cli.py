@@ -6,6 +6,7 @@ load_dotenv()
 AZURE_SQL_CONN = os.getenv("OEIL_AZURE_SQL_CONN")
 STORAGE_CONN = os.getenv("OEIL_STORAGE_CONN")
 STORAGE_CONTAINER = os.getenv("OEIL_STORAGE_CONTAINER")
+writer = LakeWriter(os.getenv("OEIL_AZCOPY_DEST"))
 
 if not AZURE_SQL_CONN:
     raise ValueError("Missing OEIL_AZURE_SQL_CONN in .env")

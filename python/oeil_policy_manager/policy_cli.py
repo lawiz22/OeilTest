@@ -1,9 +1,14 @@
 import argparse
+import os
 
 from python.oeil_policy_manager.json_builder import PolicyJsonBuilder
 from python.oeil_policy_manager.lake_writer import LakeWriter
 from python.oeil_policy_manager.policy_repository import PolicyRepository
-from python.oeil_policy_manager.config import AZURE_SQL_CONN, STORAGE_CONN, STORAGE_CONTAINER
+from python.oeil_policy_manager.config import (
+    AZURE_SQL_CONN,
+    STORAGE_CONN,
+    STORAGE_CONTAINER,
+)
 
 
 def export_policy(dataset_id: int):
@@ -17,8 +22,7 @@ def export_policy(dataset_id: int):
     dataset = next(
         (
             row for row in datasets
-            if getattr(row, "dataset_id", None) == dataset_id
-            or getattr(row, "policy_dataset_id", None) == dataset_id
+            if row.policy_dataset_id == dataset_id
         ),
         None,
     )
@@ -33,7 +37,7 @@ def export_policy(dataset_id: int):
     policy_dict = PolicyJsonBuilder.build(dataset, tests)
     json_content = PolicyJsonBuilder.to_json(policy_dict)
 
-    writer = LakeWriter(STORAGE_CONN)
+    writer = LakeWriter(os.getenv("OEIL_AZCOPY_DEST"))
 
     path = (
         f"standardized/_policies/"
@@ -41,16 +45,16 @@ def export_policy(dataset_id: int):
     )
 
     writer.write_policy(
-        container=STORAGE_CONTAINER,
-        path=path,
-        content=json_content,
-    )
+    path=path,
+    content=json_content,
+)
 
     print("✅ Policy exported successfully.")
     print("📁 Lake path:", path)
 
 
 def main():
+
     parser = argparse.ArgumentParser(
         description="L’ŒIL v2 — Policy Manager CLI"
     )
@@ -58,7 +62,7 @@ def main():
     parser.add_argument(
         "--export",
         type=int,
-        help="Export policy for dataset_id"
+        help="Export policy for dataset_id",
     )
 
     args = parser.parse_args()

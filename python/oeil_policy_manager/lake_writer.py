@@ -1,16 +1,18 @@
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import ContainerClient
 
 
 class LakeWriter:
 
-    def __init__(self, connection_string):
-        self.client = BlobServiceClient.from_connection_string(connection_string)
+    def __init__(self, sas_url: str):
+        if not sas_url:
+            raise ValueError("Missing OEIL_AZCOPY_DEST (SAS URL)")
 
-    def write_policy(self, container, path, content):
+        self.container_client = ContainerClient.from_container_url(sas_url)
 
-        blob_client = self.client.get_blob_client(
-            container=container,
-            blob=path
+    def write_policy(self, path: str, content: str):
+
+        self.container_client.upload_blob(
+            name=path,
+            data=content,
+            overwrite=True
         )
-
-        blob_client.upload_blob(content, overwrite=True)
