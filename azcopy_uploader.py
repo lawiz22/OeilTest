@@ -25,12 +25,12 @@ def _load_dotenv(dotenv_path: Path) -> None:
 # =====================================================
 SOURCE = r"C:\Users\Louis-Martin Richard\PycharmProjects\OeilTest\output\bronze"
 
-_load_dotenv(Path(__file__).resolve().parent / "python" / ".env")
+_load_dotenv(Path(__file__).resolve().parent / ".env")
 
 DEST = os.getenv("OEIL_AZCOPY_DEST", "")
 
 if not DEST:
-    print("❌ Missing OEIL_AZCOPY_DEST in python/.env")
+    print("❌ Missing OEIL_AZCOPY_DEST in .env (project root)")
     sys.exit(1)
 
 # =====================================================

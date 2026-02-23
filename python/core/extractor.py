@@ -73,7 +73,13 @@ def insert_rows_sqlite(table, rows):
 # AZURE SQL CTRL INDEX
 # =====================================================
 def insert_ctrl_index_sql(ctrl_id, dataset, ctrl_path):
-    conn = pyodbc.connect(get_azure_sql_conn_str())
+    try:
+        conn = pyodbc.connect(get_azure_sql_conn_str())
+    except Exception as exc:
+        raise RuntimeError(
+            "Failed to connect to Azure SQL for ctrl_file_index insert. "
+            "Check python/.env Azure SQL variables."
+        ) from exc
     cur = conn.cursor()
 
     cur.execute("""
