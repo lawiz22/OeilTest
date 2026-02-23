@@ -8,33 +8,38 @@ Exemple complet d'un fichier CTRL généré par le framework.
 
 ```json
 {
-  "ctrl_id": "accounts_2026-10-08_Q",
-  "dataset": "accounts",
+  "ctrl_id": "clients_2026-05-08_Q",
+  "dataset": "clients",
   "periodicity": "Q",
-  "extraction_date": "2026-10-08",
-  "volume": {
-    "expected_rows": 1261,
-    "actual_rows": 1261,
-    "delta": 0,
-    "variance_applied": false
-  },
+  "extraction_date": "2026-05-08",
+  "expected_rows": 1479,
+  "actual_rows": 1479,
+  "variance_applied": false,
+  "variance_delta": 0,
   "integrity": {
     "min_max": {
-      "column": "account_id",
-      "min": 100001,
-      "max": 198772
+      "column": "client_id",
+      "min": 100055,
+      "max": 999689
     },
-    "checksum": {
-      "column": "account_id",
+    "distributed_signature": {
+      "column": "client_id",
       "algorithm": "SHA256",
-      "value": "ab3290c9..."
+      "components": "COUNT|MIN|MAX|SUM",
+      "value": "c08ead66bab99fa4a07a995aa17b7a92ad689111d8017f39a2c47418911feb28"
     }
   },
-  "payload_canonical": "accounts|Q|2026-10-08|1261",
-  "payload_hash_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "payload_canonical": "clients|Q|2026-05-08|1479",
+  "payload_hash_sha256": "ec753a461011a2760f4b514bc5e1ed1181d9fe93d2e7f97bed0c351eaf107c62",
   "payload_hash_version": 1,
-  "source_system": "CRM_PROD",
-  "created_ts": "2026-10-08T14:30:00.123456"
+  "source_system": "LEGACY_DS",
+  "created_ts": "2026-02-23T03:32:07.306862",
+  "pipeline_name": null,
+  "trigger_name": null,
+  "pipeline_run_id": null,
+  "status": "CREATED",
+  "start_ts": null,
+  "end_ts": null
 }
 ```
 
@@ -47,12 +52,13 @@ Exemple complet d'un fichier CTRL généré par le framework.
 ### Volume
 - `expected_rows` : Le nombre de lignes que le système source déclare avoir envoyées.
 - `actual_rows` : Le nombre de lignes effectivement chargées par ADF (reçu par l'ingestion).
-- `delta` : Différence calculée (utilisé pour les alertes de volume).
+- `variance_applied` : Indique si une tolérance de variance a été appliquée.
+- `variance_delta` : Écart de volume calculé (utilisé pour les alertes de volume).
 
 ### Integrity (v2)
 Contient les métriques de validation fine calculées à la source ou par Synapse.
 - `min_max` : Bornes observées sur la colonne clé.
-- `checksum` : Empreinte cryptographique de la colonne clé (pour détecter des modifications silencieuses).
+- `distributed_signature` : Signature distribuée de la colonne clé (`COUNT|MIN|MAX|SUM`) avec hash SHA-256.
 
 ## 👁️ Concept “Œil gauche / Œil droit”
 

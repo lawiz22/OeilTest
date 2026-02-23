@@ -219,17 +219,26 @@ Cette étape définit **la nature** des tests exécutables :
 
 Cette étape matérialise le résultat du run qualité :
 
-- une ligne par test exécuté (`ROW_COUNT`, `MIN_MAX`),
-- statut de test (`PASS`/`FAIL`) visible immédiatement,
-- traces numériques (`min_value`, `max_value`, `expected_value`, `delta_value`) exploitables pour audit.
+- une ligne par test exécuté (`CHECKSUM_STRUCTURE`, `MIN_MAX`, `DISTRIBUTED_SIGNATURE`, `ROW_COUNT`),
+- statut de test visible immédiatement (`PASS`/`FAIL` pour hash/signature, `OK`/`ANOMALY` pour tests volumétriques),
+- traces numériques et textuelles (`observed_*`, `reference_*`, `delta_value`) exploitables pour audit.
 
-Note importante : pour `ROW_COUNT`, la valeur de comptage est stockée dans `min_value` par convention technique.
+Note importante : pour `ROW_COUNT`, la valeur contractuelle est portée dans `observed_value_num` et la valeur détectée dans `reference_value_num`.
 
 ### Lecture du screenshot
 
-- Plusieurs `ctrl_id` de la démo sont présents sur la fenêtre d’exécution.
-- Les tests `ROW_COUNT` et `MIN_MAX` sont tous marqués `PASS`.
-- `delta_value = 0` confirme l'alignement Bronze vs Parquet sur ces runs.
+- Sur `clients_2026-05-08_Q`, les 4 tests attendus sont présents.
+- `CHECKSUM_STRUCTURE` et `DISTRIBUTED_SIGNATURE` sont en `PASS`.
+- `MIN_MAX` et `ROW_COUNT` sont en `OK` avec `delta_value = 0`.
+
+### Exemple réel (`clients_2026-05-08_Q`)
+
+| integrity_result_id | test_code | column_name | observed_value_text | reference_value_text | observed_value_num | observed_value_aux_num | reference_value_num | reference_value_aux_num | status | execution_time_ms | synapse_start_ts | synapse_end_ts | delta_value |
+|---:|---|---|---|---|---:|---:|---:|---:|---|---:|---|---|---:|
+| 273 | CHECKSUM_STRUCTURE | NULL | NULL | E1ACB8F3D9F7D810E24D56D3656C450497879AED4D87BC3FDB3D5DD2B852BCCA | NULL | NULL | NULL | NULL | PASS | NULL | NULL | NULL | NULL |
+| 274 | MIN_MAX | client_id | NULL | NULL | 100055 | 999689 | 100055 | 999689 | OK | 9 | 2026-02-23 03:39:37.3249951 | 2026-02-23 03:39:37.3249951 | 0 |
+| 275 | DISTRIBUTED_SIGNATURE | client_id | c08ead66bab99fa4a07a995aa17b7a92ad689111d8017f39a2c47418911feb28 | c08ead66bab99fa4a07a995aa17b7a92ad689111d8017f39a2c47418911feb28 | 0 | 0 | 0 | 0 | PASS | 10 | 2026-02-23 03:38:26.8533333 | 2026-02-23 03:39:38.1200000 | 0 |
+| 276 | ROW_COUNT | ROW_COUNT | NULL | NULL | 1479 | 0 | 1479 | 0 | OK | 9 | 2026-02-23 03:38:26.8533333 | 2026-02-23 03:39:34.5666667 | 0 |
 
 ### Screenshot
 
@@ -240,6 +249,27 @@ Note importante : pour `ROW_COUNT`, la valeur de comptage est stockée dans `min
 ---
 
 ## Étape 9 — Comparatif `vigie_ctrl` (avant / après rejouage Guardian)
+
+### Snapshot réel `vigie_ctrl` (run nominal DDS)
+
+Cas de référence: `clients_2026-05-08_Q`.
+
+| Champ | Valeur |
+|---|---|
+| `status` | `OK` |
+| `status_global` | `COMPLETED` |
+| `expected_rows` / `bronze_rows` / `parquet_rows` | `1479 / 1479 / 1479` |
+| `bronze_status` / `parquet_status` | `OK / OK` |
+| `quality_status_global` | `PASS` |
+| `quality_tests_total/pass/fail/warning` | `4 / 2 / 0 / 0` |
+| `adf_duration_sec` | `16` |
+| `synapse_duration_sec` | `68` |
+| `duration_sec` | `365` |
+| `oeil_sla_status` / `synapse_sla_status` | `OK / OK` |
+| `sla_bucket` | `SLOW` |
+| `alert_flag` / `alert_level` | `0 / INFO` |
+| `synapse_cost_estimated_cad` | `0.002267` |
+| `payload_hash_match` | `1` |
 
 ### Avant / Après rejouage Guardian (tableau vertical)
 

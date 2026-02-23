@@ -40,7 +40,7 @@ Le pipeline qualité `PL_Oeil_Quality_Engine` intègre désormais une **validati
 │    ├─ INSERT vigie_integrity_result (CHECKSUM_STRUCTURE)        │
 │    │                                                             │
 │    ├─ SI PASS ✅                                                │
-│    │  └─ Continue → ForEach_Policy (ROW_COUNT, MIN_MAX, etc.)  │
+│    │  └─ Continue → ForEach_Policy (ROW_COUNT, MIN_MAX, DISTRIBUTED_SIGNATURE, etc.) │
 │    │                                                             │
 │    └─ SI FAIL ❌                                                │
 │       └─ THROW 50001 → Pipeline arrêté immédiatement            │
@@ -123,7 +123,7 @@ Tous les résultats sont persistés dans `dbo.vigie_integrity_result`:
 ## Impact sur le pipeline
 
 **Avant cette validation**:
-- Tests qualité (ROW_COUNT, MIN_MAX) s'exécutaient même si structure incorrecte
+- Tests qualité (ROW_COUNT, MIN_MAX, DISTRIBUTED_SIGNATURE) s'exécutaient même si structure incorrecte
 - Erreurs downstream cryptiques
 - Coûts Synapse gaspillés
 

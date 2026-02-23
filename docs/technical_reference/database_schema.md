@@ -94,7 +94,7 @@ Indexes / contraintes notables :
 | Colonne | Signification | Source |
 |---|---|---|
 | `status` (`vigie_ctrl`) | Lifecycle run state (`RECEIVED`, `PROCESSING`, `COMPLETED`, `FAILED`) | Orchestration ADF/SQL |
-| `status` (`vigie_integrity_result`) | Résultat d'un test d'intégrité individuel (`PASS`, `WARNING`, `FAIL`) | Integrity engine |
+| `status` (`vigie_integrity_result`) | Résultat d'un test d'intégrité individuel (`OK`/`ANOMALY` pour volume, `PASS`/`FAIL` pour hash/signature, `WARNING` possible) | Integrity engine |
 | `status_global` | État global d'orchestration du pipeline | Orchestration ADF/SQL |
 | `quality_status_global` | État global qualité agrégé du run | Quality Engine + `SP_Compute_Quality_Summary` |
 | `quality_tests_total`, `quality_tests_pass`, `quality_tests_fail`, `quality_tests_warning` | Compteurs de synthèse qualité par run | Quality Engine + `SP_Compute_Quality_Summary` |
@@ -210,15 +210,17 @@ Table de gouvernance historique (coexistence avec le modèle v2 ci-dessus selon 
 | `dataset_name` | NVARCHAR(150) NOT NULL | Dataset évalué |
 | `test_code` | NVARCHAR(50) NOT NULL | Code du test exécuté |
 | `column_name` | NVARCHAR(150) NULL | Colonne ciblée par le test |
-| `status` | NVARCHAR(30) NOT NULL | PASS / WARNING / FAIL |
-| `numeric_value` | FLOAT | Valeur mesurée |
-| `text_value` | NVARCHAR(500) | Valeur texte mesurée (si applicable) |
-| `min_value` | FLOAT | Min observé |
-| `max_value` | FLOAT | Max observé |
-| `expected_value` | FLOAT | Valeur attendue (si applicable) |
+| `observed_value_num` | FLOAT NULL | Valeur observée principale (numérique) |
+| `observed_value_aux_num` | FLOAT NULL | Valeur observée secondaire (numérique) |
+| `reference_value_num` | FLOAT NULL | Valeur de référence principale (numérique) |
+| `reference_value_aux_num` | FLOAT NULL | Valeur de référence secondaire (numérique) |
+| `observed_value_text` | NVARCHAR(500) NULL | Valeur observée textuelle (ex: signature) |
+| `reference_value_text` | NVARCHAR(500) NULL | Valeur de référence textuelle |
 | `delta_value` | FLOAT | Écart observé |
+| `status` | NVARCHAR(30) NOT NULL | `OK` / `ANOMALY` / `PASS` / `FAIL` / `WARNING` |
 | `execution_time_ms` | INT | Durée d'exécution du test |
-| `synapse_cost_usd` | DECIMAL(10,4) | Coût Synapse estimé pour ce test |
+| `synapse_start_ts` | DATETIME2(7) NULL | Début du segment Synapse pour le test |
+| `synapse_end_ts` | DATETIME2(7) NULL | Fin du segment Synapse pour le test |
 | `created_at` | DATETIME2 DEFAULT SYSUTCDATETIME() | Timestamp UTC d'insertion |
 
 ### `dbo.ctrl_file_index` (Index d'ingestion)
