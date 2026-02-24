@@ -42,6 +42,7 @@ Portail principal pour naviguer
 - [Livre blanc — DDS vs Hash ligne complète](guides/dds_strategy.md)
 - [Annexe A — Formalisation mathématique de la DDS](appendices/annexe_a_formalisation_math_dds.md)
 - [Annexe B — Hypothèses & limites statistiques de la DDS](appendices/annexe_b_hypotheses_limites_statistiques_dds.md)
+- [Annexe C — Protocole de test empirique DDS](appendices/annexe_c_protocole_test_empirique_dds.md)
 - [Power BI Dashboard](guides/powerbi_dashboard.md)
 
 ---
