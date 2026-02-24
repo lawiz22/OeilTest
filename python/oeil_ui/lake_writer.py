@@ -16,3 +16,8 @@ class LakeWriter:
             data=content,
             overwrite=True
         )
+
+    def policy_exists(self, path: str) -> bool:
+
+        blob_client = self.container_client.get_blob_client(path)
+        return blob_client.exists()

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OEIL Control Center</title>
+    {% block extra_head %}{% endblock %}
+    <style>
+        body {
+            background:#0f172a;
+            color:white;
+            font-family:Arial;
+            padding:40px;
+        }
+
+        .nav {
+            margin-bottom:30px;
+        }
+
+        .nav a {
+            margin-right:20px;
+            text-decoration:none;
+            font-weight:bold;
+            color:#94a3b8;
+        }
+
+        .nav a.active {
+            color:#38bdf8;
+        }
+
+        .card {
+            background:#1e293b;
+            padding:20px;
+            border-radius:10px;
+            margin-bottom:20px;
+        }
+
+        button {
+            padding:8px 16px;
+            margin-right:10px;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+        }
+
+        pre {
+            background:black;
+            padding:15px;
+            border-radius:6px;
+            overflow-x:auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <a href="/">🏠 Home</a>
+
+    {% if dataset_id %}
+        <a href="/policy/{{dataset_id}}"
+           class="{% if active_tab == 'policy' %}active{% endif %}">
+           🛡 Policy
+        </a>
+
+        <a href="/struct/{{dataset_id}}"
+           class="{% if active_tab == 'structural' %}active{% endif %}">
+           🧬 Structural
+        </a>
+    {% endif %}
+</div>
+
+{% block content %}
+{% endblock %}
+
+</body>
+</html>

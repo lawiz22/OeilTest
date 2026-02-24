@@ -1,10 +1,10 @@
 import argparse
 import os
 
-from python.oeil_policy_manager.json_builder import PolicyJsonBuilder
-from python.oeil_policy_manager.lake_writer import LakeWriter
-from python.oeil_policy_manager.policy_repository import PolicyRepository
-from python.oeil_policy_manager.config import (
+from python.oeil_ui.json_builder import PolicyJsonBuilder
+from python.oeil_ui.lake_writer import LakeWriter
+from python.oeil_ui.policy_repository import PolicyRepository
+from python.oeil_ui.config import (
     AZURE_SQL_CONN,
     STORAGE_CONN,
     STORAGE_CONTAINER,

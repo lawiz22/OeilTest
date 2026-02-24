@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>🧬 Structural Manager – {{ dataset.dataset_name }}</h1>
+
+<div class="card">
+    <button onclick="preview()">Preview Recalculate</button>
+    <button id="updateBtn" onclick="update()">Confirm Update</button>
+</div>
+
+<div class="card">
+    <h3>Status</h3>
+    <div id="status"></div>
+</div>
+
+<div class="card">
+    <h3>JSON Used For Hash</h3>
+    <pre id="json" style="white-space:pre-wrap;"></pre>
+</div>
+
+<script>
+
+async function preview() {
+
+    const response = await fetch("/struct/{{dataset_id}}/preview");
+    const data = await response.json();
+
+    document.getElementById("json").textContent =
+        JSON.stringify(JSON.parse(data.json), null, 2);
+
+    let color = data.status === "MATCH" ? "lime" : "red";
+
+    document.getElementById("status").innerHTML =
+        "<b>DB Hash:</b> " + data.db_hash + "<br>" +
+        "<b>New Hash:</b> " + data.new_hash + "<br>" +
+        "<b>Status:</b> <span style='color:" + color + "'>" + data.status + "</span>";
+
+    document.getElementById("updateBtn").disabled =
+        (data.status === "MATCH");
+}
+
+async function update() {
+
+    const response = await fetch("/struct/{{dataset_id}}/update", {
+        method: "POST"
+    });
+
+    const data = await response.json();
+
+    alert("Structural hash updated to: " + data.new_hash);
+    preview();
+}
+
+window.onload = preview;
+
+</script>
+
+{% endblock %}

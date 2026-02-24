@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/style.css">
+{% endblock %}
+
+{% block content %}
+
+<h2>OEIL Control Center</h2>
+
+<table class="dashboard-table">
+    <thead>
+        <tr>
+            <th>Dataset</th>
+            <th>Env</th>
+            <th>Policy</th>
+            <th>Structure</th>
+            <th>Version</th>
+            <th>Synapse</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for ds in datasets %}
+        <tr>
+            <td>
+                <a href="/policy/{{ ds.policy_dataset_id }}">
+                    {{ ds.dataset_name }}
+                </a>
+            </td>
+            <td>{{ ds.environment }}</td>
+
+            <td>
+                {% if ds.policy_enabled %}
+                    <span class="badge badge-green">ENABLED</span>
+                {% else %}
+                    <span class="badge badge-red">DISABLED</span>
+                {% endif %}
+            </td>
+
+            <td>
+                {% if ds.structural_status == "MATCH" %}
+                    <span class="badge badge-green">MATCH</span>
+                {% elif ds.structural_status == "DRIFT" %}
+                    <span class="badge badge-orange">DRIFT</span>
+                {% else %}
+                    <span class="badge badge-gray">NO STRUCTURE</span>
+                {% endif %}
+            </td>
+
+            <td>{{ ds.mapping_version or "-" }}</td>
+
+            <td>
+                {% if ds.synapse_allowed %}
+                    <span class="synapse-yes">✔</span>
+                {% else %}
+                    <span class="synapse-no">✖</span>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/style.css">
+{% endblock %}
+
+{% block content %}
+
+<h1 class="policy-header">🛡 Policy Manager – {{ dataset.dataset_name }}</h1>
+
+<div class="card">
+    <div class="policy-meta">
+        <div class="policy-meta-item">
+            <span class="policy-meta-label">Environment</span>
+            <span class="policy-meta-value">{{ dataset.environment }}</span>
+        </div>
+        <div class="policy-meta-item">
+            <span class="policy-meta-label">Synapse Allowed</span>
+            <span class="policy-meta-value">{{ dataset.synapse_allowed }}</span>
+        </div>
+        <div class="policy-meta-item">
+            <span class="policy-meta-label">Max Synapse Cost</span>
+            <span class="policy-meta-value">{{ dataset.max_synapse_cost_usd }}</span>
+        </div>
+    </div>
+
+    <div class="policy-actions">
+        <button class="btn-primary" onclick="exportPolicy()">Export JSON</button>
+        <button class="btn-primary" onclick="exportPolicyToLake()">🌊 Export to Lake</button>
+    </div>
+
+    <div id="lakeStatus" class="lake-status">Lake status: checking...</div>
+</div>
+
+<div class="card">
+    <h3>Configured Tests</h3>
+
+    <table class="policy-table">
+        <thead>
+            <tr>
+                <th>Test</th>
+                <th>Column</th>
+                <th>Frequency</th>
+                <th>Hash</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tests %}
+            <tr>
+                <td>{{ t.test_code }}</td>
+                <td>{{ t.column_name or '-' }}</td>
+                <td>{{ t.frequency or '-' }}</td>
+                <td>{{ t.hash_algorithm or '-' }}</td>
+                <td>
+                    {% if t.is_enabled %}
+                        <span class="badge badge-green">ENABLED</span>
+                    {% else %}
+                        <span class="badge badge-red">DISABLED</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>Policy JSON</h3>
+    <pre id="json" class="policy-json"></pre>
+</div>
+
+<script>
+
+async function exportPolicy() {
+
+    const response = await fetch("/policy/{{dataset_id}}/export");
+    const data = await response.json();
+
+    document.getElementById("json").textContent =
+        JSON.stringify(data, null, 2);
+}
+
+function setLakeStatus(message, kind) {
+    const box = document.getElementById("lakeStatus");
+    box.textContent = message;
+    box.className = "lake-status " + (kind || "");
+}
+
+async function refreshLakeStatus() {
+    try {
+        const response = await fetch("/policy/{{dataset_id}}/lake-status");
+        const data = await response.json();
+
+        if (!response.ok) {
+            setLakeStatus("Lake status: error - " + (data.error || "unknown"), "lake-error");
+            return;
+        }
+
+        if (data.exists) {
+            setLakeStatus("Lake status: file already exists ✅  (" + data.path + ")", "lake-ok");
+        } else {
+            setLakeStatus("Lake status: file not found yet ⏳  (" + data.path + ")", "lake-warn");
+        }
+    } catch (error) {
+        setLakeStatus("Lake status: connection error", "lake-error");
+    }
+}
+
+async function exportPolicyToLake() {
+    try {
+        const response = await fetch("/policy/{{dataset_id}}/export-lake", {
+            method: "POST"
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            setLakeStatus("Export error: " + (data.error || "unknown"), "lake-error");
+            return;
+        }
+
+        if (data.already_existed) {
+            setLakeStatus("Exported 🌊 (file existed and was overwritten): " + data.path, "lake-ok");
+        } else {
+            setLakeStatus("Exported 🌊 (new file created): " + data.path, "lake-ok");
+        }
+    } catch (error) {
+        setLakeStatus("Export error: connection issue", "lake-error");
+    }
+}
+
+window.onload = refreshLakeStatus;
+
+</script>
+
+{% endblock %}
