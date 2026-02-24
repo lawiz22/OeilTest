@@ -15,7 +15,32 @@ Le moteur de policy est désormais exploitable via le Control Center Python:
 
 ### Aperçu UI
 
-Captures du Control Center à compléter (nouvelle version en cours de finalisation).
+- Home
+
+![Control Center - Home](../screenshots/cc_home.png)
+
+Légende rapide:
+- Contrôler la santé Azure SQL et Lake.
+- Filtrer DEV/PROD puis ouvrir Policy ou Structural.
+- Vérifier l’état Policy/Structure/Synapse de chaque dataset.
+
+- Policy
+
+![Control Center - Policy](../screenshots/cc_policy.png)
+
+Légende rapide:
+- Ajuster les tests actifs et leur fréquence.
+- Vérifier les champs utilisés par test.
+- Exporter la policy en JSON et vers le Lake.
+
+- Structural
+
+![Control Center - Structural](../screenshots/cc_structural.png)
+
+Légende rapide:
+- Lire le résumé des hash DB et Contract.
+- Comparer contract_hash et detected_hash.
+- Confirmer MATCH ou investiguer DRIFT.
 
 ## Marquage audit
 

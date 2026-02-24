@@ -58,12 +58,14 @@ High-level overview of components (ADF, SQL, Synapse) and data flow.
 - **[Stored Procedures](technical_reference/stored_procedures.md)**: Logic for lifecycle and computation.
 - **[ADF Pipelines](technical_reference/adf_pipelines.md)**: Ingestion and transformation workflows.
 
+### 🖥️ Control Center (UI)
+- **[Oeil Control Center](guides/control_center.md)**: Guide complet de l'interface Home / Policy / Structural pour usagers et développeurs.
+
 ### 📖 Guides
 - **[Power BI Dashboard](guides/powerbi_dashboard.md)**: Understanding the monitoring dashboard.
 - **[Design Decisions](guides/design_decisions.md)**: Rationale behind key architectural choices.
 - **[FAQ Stratégique](guides/faq_strategique.md)**: Positionnement de L’ŒIL vs outils Azure/Purview/Dynatrace.
 - **[DDS Strategy](guides/dds_strategy.md)**: Choix DDS (DEV) et positionnement PROD avec Synapse Serverless.
-- **[Oeil Control Center](guides/control_center.md)**: UI Python unifiée pour piloter policies, structure et export lake.
 - **[Release Checklist](guides/release_checklist.md)**: Step-by-step runbook for demo/release execution.
 - **[Demo Run End-to-End](guides/demo_run_end_to_end.md)**: Step-by-step walkthrough with screenshots.
 - **[Policy Reset SQL (Deprecated)](guides/policy_reset_sql.md)**: Script SQL conservé pour maintenance avancée; privilégier **Oeil Control Center** pour l’usage courant.

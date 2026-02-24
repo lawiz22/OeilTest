@@ -8,11 +8,120 @@
     overflow: hidden;
 }
 
+.home-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.home-filters label {
+    font-size: 13px;
+    color: #cbd5e1;
+}
+
+.home-route-icons {
+    display: flex;
+    gap: 6px;
+}
+
+.home-dataset-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.home-dataset-name {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.home-icon-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.home-icon-link:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    text-decoration: none;
+}
+
+.home-policy-switch {
+    margin-left: 6px;
+    width: 62px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid #334155;
+    background: #cbd5e1;
+    color: #1e293b;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 28px;
+    cursor: pointer;
+    position: relative;
+    padding: 0;
+    text-align: left;
+    overflow: hidden;
+}
+
+.home-policy-switch-label {
+    display: block;
+    margin-left: 28px;
+    user-select: none;
+}
+
+.home-policy-switch-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    transition: left 0.15s ease;
+}
+
+.home-policy-switch.is-active {
+    background: #22c55e;
+    border-color: #16a34a;
+    color: #ffffff;
+}
+
+.home-policy-switch.is-active .home-policy-switch-label {
+    margin-left: 8px;
+}
+
+.home-policy-switch.is-active .home-policy-switch-thumb {
+    left: 36px;
+}
+
+.home-policy-switch:hover {
+    filter: brightness(0.98);
+}
+
 .dashboard-table th,
 .dashboard-table td {
     padding: 12px 14px;
     border-bottom: 1px solid #1f2a44;
     vertical-align: middle;
+    border-right: 1px solid #1f2a44;
+}
+
+.dashboard-table th:last-child,
+.dashboard-table td:last-child {
+    border-right: none;
 }
 
 .dashboard-table th {

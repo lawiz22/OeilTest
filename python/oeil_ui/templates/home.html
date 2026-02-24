@@ -8,6 +8,15 @@
 
 <h2>OEIL Control Center</h2>
 
+<div class="home-filters">
+    <label for="envFilter">Environment filter</label>
+    <select id="envFilter" class="input-dark" onchange="applyEnvFilter()">
+        <option value="ALL">ALL</option>
+        <option value="DEV">DEV</option>
+        <option value="PROD">PROD</option>
+    </select>
+</div>
+
 <table class="dashboard-table">
     <thead>
         <tr>
@@ -19,22 +28,38 @@
             <th>Synapse</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="dashboardBody">
     {% for ds in datasets %}
-        <tr>
+        <tr data-env="{{ ds.environment }}" data-policy-id="{{ ds.policy_dataset_id }}">
             <td>
-                <a href="/policy/{{ ds.policy_dataset_id }}">
-                    {{ ds.dataset_name }}
-                </a>
+                <div class="home-dataset-row">
+                    <span class="home-dataset-name">{{ ds.dataset_name }}</span>
+                    <div class="home-route-icons">
+                    <a class="home-icon-link" href="/policy/{{ ds.dataset_name }}/{{ ds.environment }}" title="Policy">
+                        🛡️
+                    </a>
+                    <a class="home-icon-link" href="/struct/{{ ds.dataset_name }}/{{ ds.environment }}" title="Structural">
+                        🧬
+                    </a>
+                    </div>
+                </div>
             </td>
             <td>{{ ds.environment }}</td>
 
             <td>
                 {% if ds.policy_enabled %}
-                    <span class="badge badge-green">ENABLED</span>
+                    <span class="badge badge-green js-policy-status">ENABLED</span>
                 {% else %}
-                    <span class="badge badge-red">DISABLED</span>
+                    <span class="badge badge-red js-policy-status">DISABLED</span>
                 {% endif %}
+                <button
+                    class="home-policy-switch js-toggle-policy {% if ds.policy_enabled %}is-active{% else %}is-inactive{% endif %}"
+                    onclick="togglePolicyActive(this)"
+                    title="{% if ds.policy_enabled %}Disable policy{% else %}Enable policy{% endif %}"
+                    aria-label="{% if ds.policy_enabled %}Disable policy{% else %}Enable policy{% endif %}">
+                    <span class="home-policy-switch-label js-policy-switch-label">{% if ds.policy_enabled %}ON{% else %}OFF{% endif %}</span>
+                    <span class="home-policy-switch-thumb"></span>
+                </button>
             </td>
 
             <td>
@@ -60,5 +85,81 @@
     {% endfor %}
     </tbody>
 </table>
+
+<script>
+const HOME_ENV_FILTER_KEY = "oeil.home.envFilter";
+
+async function togglePolicyActive(buttonEl) {
+    const row = buttonEl.closest("tr");
+    const policyId = row ? row.dataset.policyId : null;
+    if (!policyId) {
+        return;
+    }
+
+    buttonEl.disabled = true;
+
+    try {
+        const response = await fetch(`/policy/${policyId}/toggle-active`, {
+            method: "POST"
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            buttonEl.disabled = false;
+            return;
+        }
+
+        const statusEl = row.querySelector(".js-policy-status");
+        const isActive = !!data.is_active;
+
+        if (statusEl) {
+            statusEl.textContent = isActive ? "ENABLED" : "DISABLED";
+            statusEl.className = "badge js-policy-status " + (isActive ? "badge-green" : "badge-red");
+        }
+
+        const switchLabel = buttonEl.querySelector(".js-policy-switch-label");
+        if (switchLabel) {
+            switchLabel.textContent = isActive ? "ON" : "OFF";
+        }
+
+        buttonEl.classList.toggle("is-active", isActive);
+        buttonEl.classList.toggle("is-inactive", !isActive);
+        buttonEl.title = isActive ? "Disable policy" : "Enable policy";
+        buttonEl.setAttribute("aria-label", isActive ? "Disable policy" : "Enable policy");
+    } catch (e) {
+    } finally {
+        buttonEl.disabled = false;
+    }
+}
+
+function applyEnvFilter() {
+    const selected = document.getElementById("envFilter").value;
+    const rows = document.querySelectorAll("#dashboardBody tr");
+
+    rows.forEach((row) => {
+        const env = (row.dataset.env || "").toUpperCase();
+        row.style.display = (selected === "ALL" || env === selected) ? "" : "none";
+    });
+
+    try {
+        localStorage.setItem(HOME_ENV_FILTER_KEY, selected);
+    } catch (e) {
+    }
+}
+
+window.onload = () => {
+    const select = document.getElementById("envFilter");
+
+    try {
+        const saved = (localStorage.getItem(HOME_ENV_FILTER_KEY) || "").toUpperCase();
+        if (saved === "DEV" || saved === "PROD" || saved === "ALL") {
+            select.value = saved;
+        }
+    } catch (e) {
+    }
+
+    applyEnvFilter();
+};
+</script>
 
 {% endblock %}

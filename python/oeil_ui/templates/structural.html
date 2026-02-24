@@ -9,6 +9,15 @@
 <h1>🧬 Structural Manager – {{ dataset.dataset_name }}</h1>
 
 <div class="card">
+    <h3>Compact Summary</h3>
+    <div><b>DB hash:</b> <span id="compactDbHash">-</span></div>
+    <div><b>Contract hash (Control Center / pipeline):</b> <span id="compactExpectedHash">-</span></div>
+    <div><b>Contract vs Synapse:</b> <span id="compactVerdict" class="badge badge-gray">PENDING</span></div>
+</div>
+
+<div class="card">
+    <details>
+        <summary><h3 style="display:inline;">Structural Actions</h3></summary>
     <div class="policy-actions">
         <button class="btn-primary" onclick="preview()">Preview Recalculate</button>
         <button id="updateBtn" class="btn-primary" onclick="update()">Confirm Update (SP)</button>
@@ -17,19 +26,33 @@
         <button class="btn-primary" onclick="applyTypeSuggestions()">Apply Type Suggestions</button>
     </div>
     <div id="structStatus" class="lake-status">Structural actions: ready.</div>
+    </details>
 </div>
 
 <div class="card">
-    <h3>Add Table from SQLite (except clients)</h3>
+    <h3>🚦 Synapse Gate Check</h3>
+    <div id="synapseGateInfo" class="mini-hint">Contract hash used by pipeline (contract_hash): loading...</div>
+    <div class="struct-add-grid" style="margin-bottom:10px;">
+        <input id="synapseDetectedHash" class="input-dark" type="text" placeholder="Paste detected_hash from Synapse activity (64 hex)">
+        <button class="btn-primary" onclick="checkSynapseDrift()">Check Synapse Drift</button>
+    </div>
+    <div id="synapseCheckResult" class="lake-status">Synapse drift check: waiting for detected_hash input.</div>
+</div>
+
+<div class="card">
+    <details>
+    <summary><h3 style="display:inline;">Add Table from SQLite (except clients)</h3></summary>
     <div class="struct-add-grid">
         <input id="new_dataset_name" class="input-dark" type="text" placeholder="dataset_name (sqlite table)">
         <button class="btn-primary" onclick="addTableFromSqlite()">➕ Add Table</button>
     </div>
     <div class="mini-hint">Creates dataset + initial mapping columns from SQLite, then refreshes structural hash via SP.</div>
+    </details>
 </div>
 
 <div class="card">
-    <h3>Add Mapping Column (one by one)</h3>
+    <details>
+    <summary><h3 style="display:inline;">Add Mapping Column (one by one)</h3></summary>
     <div class="struct-add-grid">
         <input id="col_name" class="input-dark" type="text" placeholder="column_name">
         <input id="col_type_source" class="input-dark" type="text" placeholder="type_source (ex: INTEGER)">
@@ -42,26 +65,28 @@
         <label><input id="col_is_control_excluded" type="checkbox"> control_excluded</label>
         <button class="btn-primary" onclick="addColumn()">➕ Add Column</button>
     </div>
+    </details>
 </div>
 
 <div class="card">
-    <h3>Status</h3>
+    <details>
+    <summary><h3 style="display:inline;">Detailed Status</h3></summary>
     <div id="status"></div>
+    </details>
 </div>
 
 <div class="card">
-    <h3>SQLite Detected Columns</h3>
-    <pre id="sqliteJson" class="policy-json"></pre>
+    <details>
+        <summary><h3 style="display:inline;">Canonical Contract JSON (Before Hash)</h3></summary>
+        <pre id="canonicalJson" class="policy-json"></pre>
+    </details>
 </div>
 
 <div class="card">
-    <h3>Canonical Contract JSON (Before Hash)</h3>
-    <pre id="canonicalJson" class="policy-json"></pre>
-</div>
-
-<div class="card">
-    <h3>JSON Used For Hash</h3>
-    <pre id="json" class="policy-json"></pre>
+    <details>
+        <summary><h3 style="display:inline;">JSON Used For Hash</h3></summary>
+        <pre id="json" class="policy-json"></pre>
+    </details>
 </div>
 
 <div id="structFlags" data-clients-locked="{{ 1 if is_clients_locked else 0 }}" style="display:none;"></div>
@@ -69,6 +94,8 @@
 <script>
 
 const isClientsLocked = document.getElementById("structFlags").dataset.clientsLocked === "1";
+let currentSynapseContractHash = null;
+const structRefId = "{{ policy_dataset_id or dataset_id }}";
 
 function setStructStatus(message, kind) {
     const box = document.getElementById("structStatus");
@@ -77,7 +104,7 @@ function setStructStatus(message, kind) {
 }
 
 async function previewCanonical() {
-    const response = await fetch("/struct/{{dataset_id}}/canonical-preview");
+    const response = await fetch(`/struct/${structRefId}/canonical-preview`);
     const data = await response.json();
 
     if (!response.ok) {
@@ -92,12 +119,57 @@ async function previewCanonical() {
         columns: data.contract.columns,
     };
 
+    document.getElementById("synapseGateInfo").textContent =
+        "Contract hash (to pass in pipeline contract_hash): " + (data.synapse_contract_hash || "N/A");
+
+    currentSynapseContractHash = (data.synapse_contract_hash || "").toUpperCase();
+    document.getElementById("compactExpectedHash").textContent = currentSynapseContractHash || "-";
+
     document.getElementById("canonicalJson").textContent = JSON.stringify(payload, null, 2);
+
+    const input = document.getElementById("synapseDetectedHash").value.trim();
+    if (input) {
+        checkSynapseDrift();
+    }
+}
+
+function checkSynapseDrift() {
+    const detectedRaw = document.getElementById("synapseDetectedHash").value.trim();
+    const resultBox = document.getElementById("synapseCheckResult");
+
+    if (!detectedRaw) {
+        resultBox.className = "lake-status lake-warn";
+        resultBox.textContent = "Synapse drift check: paste detected_hash first.";
+        return;
+    }
+
+    const detected = detectedRaw.toUpperCase();
+    const expected = (currentSynapseContractHash || "").toUpperCase();
+
+    if (!expected) {
+        resultBox.className = "lake-status lake-error";
+        resultBox.textContent = "Synapse drift check: local contract_hash not loaded yet.";
+        return;
+    }
+
+    if (detected === expected) {
+        resultBox.className = "lake-status lake-ok";
+        resultBox.innerHTML = "Synapse Gate (contract_hash vs detected_hash): <span class=\"badge badge-green\">MATCH</span> " +
+            "(detected = expected = " + expected + ")";
+        document.getElementById("compactVerdict").className = "badge badge-green";
+        document.getElementById("compactVerdict").textContent = "MATCH";
+    } else {
+        resultBox.className = "lake-status lake-error";
+        resultBox.innerHTML = "Synapse Gate (contract_hash vs detected_hash): <span class=\"badge badge-red\">DRIFT</span> " +
+            "(detected=" + detected + " / expected=" + expected + ")";
+        document.getElementById("compactVerdict").className = "badge badge-red";
+        document.getElementById("compactVerdict").textContent = "DRIFT";
+    }
 }
 
 async function preview() {
 
-    const response = await fetch("/struct/{{dataset_id}}/preview");
+    const response = await fetch(`/struct/${structRefId}/preview`);
     const data = await response.json();
 
     try {
@@ -114,6 +186,18 @@ async function preview() {
         "<b>New Hash:</b> " + data.new_hash + "<br>" +
         "<b>Status:</b> <span style='color:" + color + "'>" + data.status + "</span>";
 
+    document.getElementById("compactDbHash").textContent = data.db_hash || "-";
+
+    if (!document.getElementById("synapseDetectedHash").value.trim()) {
+        if (data.status === "MATCH") {
+            document.getElementById("compactVerdict").className = "badge badge-green";
+            document.getElementById("compactVerdict").textContent = "MATCH";
+        } else {
+            document.getElementById("compactVerdict").className = "badge badge-red";
+            document.getElementById("compactVerdict").textContent = "DRIFT";
+        }
+    }
+
     document.getElementById("updateBtn").disabled =
         (data.status === "MATCH") || isClientsLocked;
 }
@@ -125,7 +209,7 @@ async function update() {
         return;
     }
 
-    const response = await fetch("/struct/{{dataset_id}}/update", {
+    const response = await fetch(`/struct/${structRefId}/update`, {
         method: "POST"
     });
 
@@ -142,7 +226,7 @@ async function update() {
 }
 
 async function detectSqlite() {
-    const response = await fetch("/struct/{{dataset_id}}/sqlite-detect");
+    const response = await fetch(`/struct/${structRefId}/sqlite-detect`);
     const data = await response.json();
 
     if (!response.ok) {
@@ -150,8 +234,7 @@ async function detectSqlite() {
         return;
     }
 
-    document.getElementById("sqliteJson").textContent = JSON.stringify(data.columns, null, 2);
-    setStructStatus("SQLite structure detected ✅", "lake-ok");
+    setStructStatus("SQLite structure detected ✅ columns=" + (data.columns ? data.columns.length : 0), "lake-ok");
 }
 
 async function importSqlite() {
@@ -160,7 +243,7 @@ async function importSqlite() {
         return;
     }
 
-    const response = await fetch("/struct/{{dataset_id}}/import-sqlite", {
+    const response = await fetch(`/struct/${structRefId}/import-sqlite`, {
         method: "POST"
     });
     const data = await response.json();
@@ -172,7 +255,6 @@ async function importSqlite() {
 
     setStructStatus("Imported missing columns: " + data.inserted_columns + " ✅", "lake-ok");
     preview();
-    detectSqlite();
     previewCanonical();
 }
 
@@ -182,7 +264,7 @@ async function applyTypeSuggestions() {
         return;
     }
 
-    const response = await fetch("/struct/{{dataset_id}}/apply-type-suggestions", {
+    const response = await fetch(`/struct/${structRefId}/apply-type-suggestions`, {
         method: "POST"
     });
     const data = await response.json();
@@ -238,7 +320,7 @@ async function addColumn() {
         is_control_excluded: document.getElementById("col_is_control_excluded").checked,
     };
 
-    const response = await fetch("/struct/{{dataset_id}}/columns/add", {
+    const response = await fetch(`/struct/${structRefId}/columns/add`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(payload)
@@ -252,7 +334,6 @@ async function addColumn() {
 
     setStructStatus("Column added: " + data.column_name + " ✅", "lake-ok");
     preview();
-    detectSqlite();
     previewCanonical();
 }
 
@@ -261,7 +342,6 @@ window.onload = () => {
         setStructStatus("clients dataset is read-only in this UI.", "lake-warn");
     }
     preview();
-    detectSqlite();
     previewCanonical();
 };
 

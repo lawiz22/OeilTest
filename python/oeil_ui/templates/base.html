@@ -47,20 +47,70 @@
             border-radius:6px;
             overflow-x:auto;
         }
+
+        .service-bar {
+            display:flex;
+            align-items:center;
+            gap:10px;
+            background:#1e293b;
+            border:1px solid #334155;
+            border-radius:8px;
+            padding:8px 10px;
+            margin-bottom:14px;
+            font-size:12px;
+        }
+
+        .service-pill {
+            padding:4px 8px;
+            border-radius:999px;
+            border:1px solid #334155;
+            color:#cbd5e1;
+        }
+
+        .service-pill.ok {
+            border-color:#166534;
+            color:#86efac;
+        }
+
+        .service-pill.ko {
+            border-color:#991b1b;
+            color:#fca5a5;
+        }
+
+        .service-btn {
+            margin-left:auto;
+            padding:4px 8px;
+            border-radius:6px;
+            border:1px solid #334155;
+            background:#0f172a;
+            color:#e2e8f0;
+            cursor:pointer;
+        }
+
+        .service-meta {
+            color:#94a3b8;
+        }
     </style>
 </head>
 <body>
 
+<div class="service-bar">
+    <span id="svcSql" class="service-pill">Azure SQL: checking...</span>
+    <span id="svcLake" class="service-pill">Lake: checking...</span>
+    <span id="svcMeta" class="service-meta"></span>
+    <button id="svcReconnectBtn" class="service-btn" onclick="refreshServiceStatus(true)">Reconnect</button>
+</div>
+
 <div class="nav">
     <a href="/">🏠 Home</a>
 
-    {% if dataset_id %}
-        <a href="/policy/{{dataset_id}}"
+    {% if policy_dataset_id or struct_dataset_id or dataset_id %}
+        <a href="{% if route_dataset_name and route_environment %}/policy/{{ route_dataset_name }}/{{ route_environment }}{% else %}/policy/{{ policy_dataset_id or dataset_id }}{% endif %}"
            class="{% if active_tab == 'policy' %}active{% endif %}">
            🛡 Policy
         </a>
 
-        <a href="/struct/{{dataset_id}}"
+        <a href="{% if route_dataset_name and route_environment %}/struct/{{ route_dataset_name }}/{{ route_environment }}{% else %}/struct/{{ struct_dataset_id or dataset_id }}{% endif %}"
            class="{% if active_tab == 'structural' %}active{% endif %}">
            🧬 Structural
         </a>
@@ -69,6 +119,45 @@
 
 {% block content %}
 {% endblock %}
+
+<script>
+function renderServicePill(id, label, ok, message) {
+    const el = document.getElementById(id);
+    el.className = "service-pill " + (ok ? "ok" : "ko");
+    el.textContent = `${label}: ${ok ? "OK" : "DOWN"}`;
+    el.title = message || "";
+}
+
+async function refreshServiceStatus(forceReconnect) {
+    const meta = document.getElementById("svcMeta");
+    const btn = document.getElementById("svcReconnectBtn");
+    btn.disabled = true;
+    meta.textContent = forceReconnect ? "reconnecting..." : "checking...";
+
+    const url = forceReconnect ? "/service-status/reconnect" : "/service-status";
+    const method = forceReconnect ? "POST" : "GET";
+
+    try {
+        const response = await fetch(url, {method});
+        const data = await response.json();
+
+        renderServicePill("svcSql", "Azure SQL", !!data.azure_sql?.ok, data.azure_sql?.message || "");
+        renderServicePill("svcLake", "Lake", !!data.lake?.ok, data.lake?.message || "");
+        meta.textContent = `updated ${new Date().toLocaleTimeString()}`;
+    } catch (e) {
+        renderServicePill("svcSql", "Azure SQL", false, "status endpoint unavailable");
+        renderServicePill("svcLake", "Lake", false, "status endpoint unavailable");
+        meta.textContent = "status check failed";
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+window.addEventListener("load", () => {
+    refreshServiceStatus(false);
+    setInterval(() => refreshServiceStatus(false), 60000);
+});
+</script>
 
 </body>
 </html>

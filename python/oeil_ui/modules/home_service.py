@@ -16,9 +16,17 @@ def get_dashboard_datasets():
         d.mapping_version,
         d.structural_hash
     FROM vigie_policy_dataset p
-    LEFT JOIN ctrl.dataset d
-        ON p.dataset_name = d.dataset_name
-    ORDER BY p.dataset_name
+    OUTER APPLY
+    (
+        SELECT TOP 1
+            dd.dataset_id,
+            dd.mapping_version,
+            dd.structural_hash
+        FROM ctrl.dataset dd
+        WHERE dd.dataset_name = p.dataset_name
+        ORDER BY dd.dataset_id
+    ) d
+    ORDER BY p.dataset_name, p.environment
     """
 
     with engine.connect() as conn:

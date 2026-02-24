@@ -21,3 +21,11 @@ class LakeWriter:
 
         blob_client = self.container_client.get_blob_client(path)
         return blob_client.exists()
+
+    def ping(self) -> bool:
+        try:
+            probe_blob = self.container_client.get_blob_client("_oeil_health_probe_.txt")
+            probe_blob.exists()
+            return True
+        except Exception:
+            return False

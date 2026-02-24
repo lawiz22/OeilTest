@@ -15,9 +15,56 @@ from ..config import AZURE_SQL_CONN, AZCOPY_DEST
 
 router = APIRouter()
 
+DEFAULT_DISTRIBUTED_SIGNATURE_COMPONENTS = "COUNT|MIN|MAX|SUM"
+
 
 def _policy_lake_path(dataset_name: str, environment: str) -> str:
     return f"standardized/_policies/{dataset_name}_{environment}.policy.json"
+
+
+def _build_integrity_preview(tests):
+    integrity = {}
+
+    for test in tests:
+        test_code = (test.get("test_code") or "").strip().upper()
+
+        if test_code == "DISTRIBUTED_SIGNATURE":
+            integrity["distributed_signature"] = {
+                "column": test.get("column_name"),
+                "algorithm": test.get("hash_algorithm") or "SHA256",
+                "components": DEFAULT_DISTRIBUTED_SIGNATURE_COMPONENTS,
+            }
+
+        if test_code == "MIN_MAX":
+            integrity["min_max"] = {
+                "column": test.get("column_name"),
+            }
+
+    return integrity
+
+
+def _serialize_policy_test(test):
+    payload = {
+        "test_code": test.get("test_code"),
+    }
+
+    if test.get("frequency"):
+        payload["frequency"] = test.get("frequency")
+
+    if test.get("column_name"):
+        payload["column_name"] = test.get("column_name")
+
+    threshold_value = test.get("threshold_value")
+    if threshold_value is not None:
+        payload["threshold_value"] = float(threshold_value)
+
+    test_code = (test.get("test_code") or "").strip().upper()
+    hash_algorithm = test.get("hash_algorithm")
+    if hash_algorithm and test_code == "DISTRIBUTED_SIGNATURE":
+        payload["hash_algorithm"] = hash_algorithm
+        payload["components"] = DEFAULT_DISTRIBUTED_SIGNATURE_COMPONENTS
+
+    return payload
 
 
 def _load_dataset_for_export(dataset_id: int):
@@ -30,12 +77,7 @@ def _load_dataset_for_export(dataset_id: int):
     return repo, dataset
 
 
-# ==========================================================
-# POLICY PAGE (HTML)
-# ==========================================================
-
-@router.get("/policy/{dataset_id}", response_class=HTMLResponse)
-def policy_page(request: Request, dataset_id: int):
+def _load_policy_page_data(dataset_id: int):
 
     engine = get_engine()
 
@@ -75,23 +117,77 @@ def policy_page(request: Request, dataset_id: int):
             {"dataset_id": dataset_id}
         ).mappings().all()
 
+        struct_dataset = conn.execute(
+            text("""
+                SELECT TOP 1 d.dataset_id
+                FROM ctrl.dataset d
+                INNER JOIN vigie_policy_dataset p
+                    ON p.dataset_name = d.dataset_name
+                WHERE p.policy_dataset_id = :dataset_id
+                ORDER BY CASE WHEN p.environment = 'DEV' THEN 0 ELSE 1 END, d.dataset_id
+            """),
+            {"dataset_id": dataset_id}
+        ).mappings().first()
+
+    if not dataset:
+        return None
+
     repo = PolicyRepository(AZURE_SQL_CONN) if AZURE_SQL_CONN else None
     test_types = repo.get_test_types() if repo else []
     available_columns = repo.get_available_columns_for_dataset(dataset["dataset_name"]) if repo else []
 
-    if not dataset:
+    return {
+        "dataset": dataset,
+        "tests": tests,
+        "test_types": test_types,
+        "available_columns": available_columns,
+        "struct_dataset_id": struct_dataset["dataset_id"] if struct_dataset else None,
+    }
+
+
+def _resolve_policy_dataset_id(conn, dataset_name: str, environment: str):
+    row = conn.execute(
+        text("""
+            SELECT TOP 1 policy_dataset_id
+            FROM vigie_policy_dataset
+            WHERE dataset_name = :dataset_name
+              AND UPPER(environment) = UPPER(:environment)
+            ORDER BY policy_dataset_id
+        """),
+        {
+            "dataset_name": dataset_name,
+            "environment": environment,
+        }
+    ).mappings().first()
+    return row["policy_dataset_id"] if row else None
+
+
+# ==========================================================
+# POLICY PAGE (HTML)
+# ==========================================================
+
+@router.get("/policy/{dataset_id}", response_class=HTMLResponse)
+def policy_page(request: Request, dataset_id: int):
+    page_data = _load_policy_page_data(dataset_id)
+    if not page_data:
         return HTMLResponse("<h2>Policy dataset not found</h2>", status_code=404)
+
+    dataset = page_data["dataset"]
 
     return render(
         request,
         "policy.html",
         context={
             "dataset": dataset,
-            "tests": tests,
-            "test_types": test_types,
-            "available_columns": available_columns,
+            "tests": page_data["tests"],
+            "test_types": page_data["test_types"],
+            "available_columns": page_data["available_columns"],
         },
         dataset_id=dataset_id,
+        policy_dataset_id=dataset_id,
+        struct_dataset_id=page_data["struct_dataset_id"],
+        route_dataset_name=dataset["dataset_name"],
+        route_environment=dataset["environment"],
         active_tab="policy"
     )
 
@@ -186,6 +282,83 @@ def delete_policy_test(dataset_id: int, policy_test_id: int):
     return {"status": "DELETED", "policy_test_id": policy_test_id}
 
 
+@router.post("/policy/{dataset_id}/synapse-allowed")
+async def set_synapse_allowed(dataset_id: int, request: Request):
+
+    payload = await request.json()
+    value = payload.get("synapse_allowed")
+
+    if value in (True, 1, "1", "true", "TRUE", "True"):
+        synapse_allowed = 1
+    elif value in (False, 0, "0", "false", "FALSE", "False"):
+        synapse_allowed = 0
+    else:
+        return JSONResponse({"error": "synapse_allowed must be boolean"}, status_code=400)
+
+    engine = get_engine()
+
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("""
+                UPDATE vigie_policy_dataset
+                SET synapse_allowed = :synapse_allowed
+                WHERE policy_dataset_id = :dataset_id
+            """),
+            {
+                "synapse_allowed": synapse_allowed,
+                "dataset_id": dataset_id,
+            }
+        )
+
+    if result.rowcount == 0:
+        return JSONResponse({"error": "Policy dataset not found"}, status_code=404)
+
+    return {
+        "status": "UPDATED",
+        "dataset_id": dataset_id,
+        "synapse_allowed": bool(synapse_allowed),
+    }
+
+
+@router.post("/policy/{dataset_id}/toggle-active")
+def toggle_policy_active(dataset_id: int):
+
+    engine = get_engine()
+
+    with engine.begin() as conn:
+        current = conn.execute(
+            text("""
+                SELECT is_active
+                FROM vigie_policy_dataset
+                WHERE policy_dataset_id = :dataset_id
+            """),
+            {"dataset_id": dataset_id}
+        ).mappings().first()
+
+        if not current:
+            return JSONResponse({"error": "Policy dataset not found"}, status_code=404)
+
+        next_value = 0 if bool(current["is_active"]) else 1
+
+        conn.execute(
+            text("""
+                UPDATE vigie_policy_dataset
+                SET is_active = :is_active
+                WHERE policy_dataset_id = :dataset_id
+            """),
+            {
+                "is_active": next_value,
+                "dataset_id": dataset_id,
+            }
+        )
+
+    return {
+        "status": "UPDATED",
+        "dataset_id": dataset_id,
+        "is_active": bool(next_value),
+    }
+
+
 # ==========================================================
 # POLICY EXPORT (JSON API)
 # ==========================================================
@@ -237,16 +410,8 @@ def export_policy(dataset_id: int):
         "environment": dataset["environment"],
         "synapse_allowed": dataset["synapse_allowed"],
         "max_synapse_cost_usd": float(dataset["max_synapse_cost_usd"]) if dataset["max_synapse_cost_usd"] else None,
-        "tests": [
-            {
-                "test_code": t["test_code"],
-                "column_name": t["column_name"],
-                "hash_algorithm": t["hash_algorithm"],
-                "frequency": t["frequency"],
-                "threshold_value": float(t["threshold_value"]) if t["threshold_value"] else None
-            }
-            for t in tests
-        ]
+        "integrity": _build_integrity_preview(tests),
+        "tests": [_serialize_policy_test(t) for t in tests]
     }
 
     return policy_json
@@ -311,3 +476,16 @@ def export_policy_to_lake(dataset_id: int):
         "path": path,
         "already_existed": existed_before,
     }
+
+
+@router.get("/policy/{dataset_name}/{environment}", response_class=HTMLResponse)
+def policy_page_by_dataset_env(request: Request, dataset_name: str, environment: str):
+
+    engine = get_engine()
+    with engine.connect() as conn:
+        dataset_id = _resolve_policy_dataset_id(conn, dataset_name, environment)
+
+    if dataset_id is None:
+        return HTMLResponse("<h2>Policy dataset not found for dataset/environment</h2>", status_code=404)
+
+    return policy_page(request, dataset_id)

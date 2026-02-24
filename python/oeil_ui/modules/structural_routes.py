@@ -60,22 +60,6 @@ def _is_clients_dataset(dataset_name: str) -> bool:
 def _resolve_dataset_ref(conn, dataset_ref: int):
     dataset = conn.execute(
         text("""
-            SELECT dataset_id,
-                   dataset_name,
-                   source_system,
-                   mapping_version,
-                   structural_hash
-            FROM ctrl.dataset
-            WHERE dataset_id = :dataset_ref
-        """),
-        {"dataset_ref": dataset_ref}
-    ).mappings().first()
-
-    if dataset:
-        return dataset
-
-    dataset = conn.execute(
-        text("""
             SELECT TOP 1
                    d.dataset_id,
                    d.dataset_name,
@@ -91,7 +75,55 @@ def _resolve_dataset_ref(conn, dataset_ref: int):
         {"dataset_ref": dataset_ref}
     ).mappings().first()
 
-    return dataset
+    if dataset:
+        return dataset
+
+    dataset = conn.execute(
+        text("""
+            SELECT dataset_id,
+                   dataset_name,
+                   source_system,
+                   mapping_version,
+                   structural_hash
+            FROM ctrl.dataset
+            WHERE dataset_id = :dataset_ref
+        """),
+        {"dataset_ref": dataset_ref}
+    ).mappings().first()
+
+    if dataset:
+        return dataset
+    return None
+
+
+def _resolve_policy_dataset_id(conn, dataset_name: str):
+    row = conn.execute(
+        text("""
+            SELECT TOP 1 policy_dataset_id
+            FROM vigie_policy_dataset
+            WHERE dataset_name = :dataset_name
+            ORDER BY CASE WHEN environment = 'DEV' THEN 0 ELSE 1 END, policy_dataset_id
+        """),
+        {"dataset_name": dataset_name}
+    ).mappings().first()
+    return row["policy_dataset_id"] if row else None
+
+
+def _resolve_policy_dataset_id_by_env(conn, dataset_name: str, environment: str):
+    row = conn.execute(
+        text("""
+            SELECT TOP 1 policy_dataset_id
+            FROM vigie_policy_dataset
+            WHERE dataset_name = :dataset_name
+              AND UPPER(environment) = UPPER(:environment)
+            ORDER BY policy_dataset_id
+        """),
+        {
+            "dataset_name": dataset_name,
+            "environment": environment,
+        }
+    ).mappings().first()
+    return row["policy_dataset_id"] if row else None
 
 
 def _sqlite_columns(table_name: str):
@@ -246,6 +278,47 @@ def _build_canonical_contract(conn, dataset_id: int):
     }
 
 
+def _build_synapse_gate_contract(conn, dataset_name: str):
+    row = conn.execute(
+        text("""
+            DECLARE @json NVARCHAR(MAX);
+
+            SELECT @json =
+            (
+                SELECT
+                    c.ordinal,
+                    c.column_name AS [name],
+                    CASE
+                        WHEN c.type_sink = 'INT' THEN 'int'
+                        WHEN c.type_sink = 'BIGINT' THEN 'bigint'
+                        WHEN c.type_sink = 'DATE' THEN 'date'
+                        WHEN c.type_sink IN ('DATETIME','DATETIME2') THEN 'datetime2'
+                        WHEN c.type_sink LIKE 'VARCHAR%' THEN 'varchar'
+                        WHEN c.type_sink LIKE 'CHAR%' THEN 'char'
+                        WHEN c.type_sink LIKE 'DECIMAL%' THEN 'decimal'
+                        ELSE LOWER(c.type_sink)
+                    END AS type_detected
+                FROM ctrl.dataset_column c
+                JOIN ctrl.dataset d
+                    ON c.dataset_id = d.dataset_id
+                WHERE d.dataset_name = :dataset_name
+                ORDER BY c.ordinal
+                FOR JSON PATH
+            );
+
+            SELECT
+                @json AS synapse_contract_json,
+                CONVERT(VARCHAR(64), HASHBYTES('SHA2_256', @json), 2) AS synapse_contract_hash;
+        """),
+        {"dataset_name": dataset_name}
+    ).mappings().first()
+
+    return {
+        "synapse_contract_json": row["synapse_contract_json"],
+        "synapse_contract_hash": row["synapse_contract_hash"],
+    }
+
+
 def _refresh_structural_hash(conn, dataset_id: int, dataset_name: str):
     try:
         conn.execute(
@@ -312,6 +385,15 @@ def structural_page(request: Request, dataset_id: int):
 
     with engine.connect() as conn:
         dataset = _resolve_dataset_ref(conn, dataset_id)
+        policy_dataset_id = _resolve_policy_dataset_id(conn, dataset["dataset_name"]) if dataset else None
+        policy_dataset = conn.execute(
+            text("""
+                SELECT environment
+                FROM vigie_policy_dataset
+                WHERE policy_dataset_id = :policy_dataset_id
+            """),
+            {"policy_dataset_id": policy_dataset_id}
+        ).mappings().first() if policy_dataset_id else None
 
     if not dataset:
         return HTMLResponse("<h2>Dataset not found</h2>", status_code=404)
@@ -324,6 +406,10 @@ def structural_page(request: Request, dataset_id: int):
             "is_clients_locked": _is_clients_dataset(dataset["dataset_name"]),
         },
         dataset_id=dataset["dataset_id"],
+        policy_dataset_id=policy_dataset_id,
+        struct_dataset_id=dataset["dataset_id"],
+        route_dataset_name=dataset["dataset_name"],
+        route_environment=policy_dataset["environment"] if policy_dataset else None,
         active_tab="structural"
     )
 
@@ -355,6 +441,7 @@ def structural_canonical_preview(dataset_id: int):
             return JSONResponse({"error": "Dataset not found"}, status_code=404)
 
         payload = _build_canonical_contract(conn, dataset["dataset_id"])
+        synapse_gate = _build_synapse_gate_contract(conn, dataset["dataset_name"])
 
     if payload is None:
         return JSONResponse({"error": "Dataset not found"}, status_code=404)
@@ -363,6 +450,8 @@ def structural_canonical_preview(dataset_id: int):
         "dataset_id": dataset["dataset_id"],
         "dataset_name": dataset["dataset_name"],
         "canonical_hash": payload["canonical_hash"],
+        "synapse_contract_json": synapse_gate["synapse_contract_json"],
+        "synapse_contract_hash": synapse_gate["synapse_contract_hash"],
         "contract": payload["contract"],
     }
 
@@ -825,3 +914,16 @@ async def create_structural_dataset_from_sqlite(request: Request):
         "dataset_id": dataset_id,
         "inserted_columns": inserted,
     }
+
+
+@router.get("/struct/{dataset_name}/{environment}", response_class=HTMLResponse)
+def structural_page_by_dataset_env(request: Request, dataset_name: str, environment: str):
+
+    engine = get_engine()
+    with engine.connect() as conn:
+        policy_dataset_id = _resolve_policy_dataset_id_by_env(conn, dataset_name, environment)
+
+    if policy_dataset_id is None:
+        return HTMLResponse("<h2>Structural dataset not found for dataset/environment</h2>", status_code=404)
+
+    return structural_page(request, policy_dataset_id)
