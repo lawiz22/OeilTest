@@ -2,7 +2,21 @@
 
 Le dashboard L'ŒIL est l'interface principale de surveillance. Il consolide les métriques de tous les runs d'extraction.
 
+
 ![Dashboard Preview](../screenshots/PowerBi_Main_Execv2.png)
+
+## Vue QA — Suivi des tests de qualité
+
+![QA Test Results](../screenshots/PowerBi_QA_v2.png)
+
+**Analyse du graphique :**
+
+- **Total Tests Executed** : 147 tests exécutés sur la période affichée.
+- **Total Tests Pass** : 87 (ligne verte), **Total Tests Fail** : 13 (ligne rouge), soit un taux d’échec de 9%.
+- **Répartition par test_code** : Les barres colorées montrent la distribution des tests CHECKSUM, CHECKSUM_STRUCTURE et DISTRIBUTED_SIGNATURE par date.
+- **Tendance** : On observe des pics d’exécution autour du 17 mai et du 14 juin, avec une stabilité du taux de réussite après chaque pic.
+- **Lecture rapide** : La majorité des tests sont des CHECKSUM (bleu), les nouveaux types CHECKSUM_STRUCTURE (jaune) et DISTRIBUTED_SIGNATURE (orange) sont bien intégrés et suivis.
+
 
 ## Indicateurs Clés
 
@@ -72,38 +86,9 @@ Colonnes clés recommandées :
 - `Volume Integrity Label`
 - `adf_sla_reason`
 
-![Power BI Volume Watch ADF](../screenshots/powerbi_volume_watch_adf.png)
 
-### 2. Volume Watch SYNAPSE (Delta Bronze/Parquet)
 
-Objectif : comparer les écarts de volume calculés après ingestion/compute, côté Bronze et Parquet.
 
-- **Delta Bronze** : `bronze_delta = bronze_rows - expected_rows`
-- **Delta Parquet** : `parquet_delta = parquet_rows - expected_rows`
-- **Lecture rapide** :
-	- valeur positive = sur-volume vs attendu
-	- valeur négative = sous-volume vs attendu
-
-Colonnes clés recommandées :
-
-- `ctrl_id`
-- `Month`
-- `Day`
-- `Expected_rows`
-- `Rows_ingested`
-- `bronze_rows`
-- `bronze_delta`
-- `parquet_rows`
-- `parquet_delta`
-
-![Power BI Volume Watch Synapse](../screenshots/powerbi_volume_watch_synapse.png)
-
-## Notes d'intégration screenshots
-
-Ajouter les captures dans `docs/screenshots/` avec ces noms :
-
-- `powerbi_volume_watch_adf.png`
-- `powerbi_volume_watch_synapse.png`
 
 ## KPI card definitions (standard)
 
