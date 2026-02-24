@@ -39,7 +39,9 @@ Portail principal pour naviguer
 - [Snapshot complet vigie_ctrl](guides/demo_run_end_to_end_vigie_ctrl_full_snapshot.md)
 - [FAQ Stratégique](guides/faq_strategique.md)
 - [Design Decisions](guides/design_decisions.md)
-- [DDS Strategy](guides/dds_strategy.md)
+- [Livre blanc — DDS vs Hash ligne complète](guides/dds_strategy.md)
+- [Annexe A — Formalisation mathématique de la DDS](appendices/annexe_a_formalisation_math_dds.md)
+- [Annexe B — Hypothèses & limites statistiques de la DDS](appendices/annexe_b_hypotheses_limites_statistiques_dds.md)
 - [Power BI Dashboard](guides/powerbi_dashboard.md)
 
 ---

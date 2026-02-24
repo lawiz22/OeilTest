@@ -8,3 +8,4 @@ Cette section explique le modèle fonctionnel avant d’entrer dans l’impléme
 2. [Control File (CTRL)](control_file.md)
 3. [Policy Engine (v2)](policy_engine.md)
 4. [SLA Management](sla_management.md)
+5. [Livre blanc — DDS vs Hash ligne complète](../guides/dds_strategy.md)
