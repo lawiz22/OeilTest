@@ -2,7 +2,7 @@
 
 Le dashboard L'ŒIL est l'interface principale de surveillance. Il consolide les métriques de tous les runs d'extraction.
 
-![Dashboard Preview](../screenshots/powerbi_dashboard_main.png)
+![Dashboard Preview](../screenshots/PowerBi_Main_Execv2.png)
 
 ## Indicateurs Clés
 
