@@ -5,6 +5,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from .db import get_engine
 from .layout import render
@@ -198,7 +199,10 @@ async def add_policy_test(dataset_id: int, request: Request):
     if not AZURE_SQL_CONN:
         return JSONResponse({"error": "OEIL_AZURE_SQL_CONN is not configured"}, status_code=500)
 
-    payload = await request.json()
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON payload"}, status_code=400)
 
     test_type_id = payload.get("test_type_id")
     frequency = (payload.get("frequency") or "DAILY").strip().upper()
@@ -252,14 +256,34 @@ async def add_policy_test(dataset_id: int, request: Request):
     if test_type["test_code"] == "MIN_MAX" and not column_name:
         return JSONResponse({"error": "MIN_MAX requires a column_name"}, status_code=400)
 
-    new_id = repo.add_policy_test(
-        dataset_id=dataset_id,
-        test_type_id=test_type_id,
-        column_name=column_name,
-        frequency=frequency,
-        hash_algorithm=hash_algorithm,
-        threshold_value=threshold_value,
-    )
+    try:
+        new_id = repo.add_policy_test(
+            dataset_id=dataset_id,
+            test_type_id=test_type_id,
+            column_name=column_name,
+            frequency=frequency,
+            hash_algorithm=hash_algorithm,
+            threshold_value=threshold_value,
+        )
+    except SQLAlchemyError as exc:
+        db_message = str(getattr(exc, "orig", exc) or "").strip()
+        db_message_lower = db_message.lower()
+
+        if "duplicate" in db_message_lower or "unique" in db_message_lower:
+            return JSONResponse(
+                {"error": "This policy test already exists (database uniqueness rule)."},
+                status_code=409,
+            )
+
+        return JSONResponse(
+            {"error": f"Database error while adding policy test: {db_message or 'unknown database error'}"},
+            status_code=500,
+        )
+    except Exception as exc:
+        return JSONResponse(
+            {"error": f"Unexpected error while adding policy test: {str(exc)}"},
+            status_code=500,
+        )
 
     return {
         "status": "CREATED",

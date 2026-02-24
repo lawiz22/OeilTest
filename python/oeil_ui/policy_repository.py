@@ -229,6 +229,7 @@ class PolicyRepository:
             column_name,
             hash_algorithm
         )
+        OUTPUT INSERTED.policy_test_id
         VALUES
         (
             :dataset_id,
@@ -238,9 +239,7 @@ class PolicyRepository:
             :threshold_value,
             :column_name,
             :hash_algorithm
-        );
-
-        SELECT CAST(SCOPE_IDENTITY() AS INT) AS policy_test_id;
+        )
         """
 
         with self.engine.begin() as conn:
@@ -255,6 +254,9 @@ class PolicyRepository:
                     "hash_algorithm": hash_algorithm,
                 }
             ).mappings().first()
+
+        if not row or row.get("policy_test_id") is None:
+            raise RuntimeError("Insert completed but no policy_test_id was returned")
 
         return row["policy_test_id"]
 

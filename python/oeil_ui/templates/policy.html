@@ -119,11 +119,49 @@
 
 async function exportPolicy() {
 
-    const response = await fetch("/policy/{{dataset_id}}/export");
-    const data = await response.json();
+    try {
+        const response = await fetch("/policy/{{dataset_id}}/export");
+        const data = await parseApiResponse(response);
 
-    document.getElementById("json").textContent =
-        JSON.stringify(data, null, 2);
+        if (!response.ok) {
+            document.getElementById("json").textContent =
+                "Export error: " + extractApiError(response, data, "Unable to export policy");
+            return;
+        }
+
+        document.getElementById("json").textContent =
+            JSON.stringify(data, null, 2);
+    } catch (error) {
+        document.getElementById("json").textContent =
+            "Export error: request failed" + (error?.message ? ` (${error.message})` : "");
+    }
+}
+
+async function parseApiResponse(response) {
+    const contentType = response.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+        try {
+            return await response.json();
+        } catch (_) {
+            return {};
+        }
+    }
+
+    const raw = await response.text();
+    if (!raw) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(raw);
+    } catch (_) {
+        return { error: raw };
+    }
+}
+
+function extractApiError(response, data, fallback) {
+    return (data && (data.error || data.detail || data.message)) || `${fallback} (HTTP ${response.status})`;
 }
 
 function getSynapseAllowedFromPage() {
@@ -204,27 +242,27 @@ async function toggleSynapseAllowed() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({synapse_allowed: next}),
         });
-        const data = await response.json();
+        const data = await parseApiResponse(response);
 
         if (!response.ok) {
-            setPolicyCrudStatus("Synapse toggle error: " + (data.error || "unknown"), "lake-error");
+            setPolicyCrudStatus("Synapse toggle error: " + extractApiError(response, data, "Unable to update synapse flag"), "lake-error");
             return;
         }
 
         renderSynapseAllowed(!!data.synapse_allowed);
         setPolicyCrudStatus("Synapse Allowed updated ✅", "lake-ok");
     } catch (error) {
-        setPolicyCrudStatus("Synapse toggle error: connection issue", "lake-error");
+        setPolicyCrudStatus("Synapse toggle error: request failed" + (error?.message ? ` (${error.message})` : ""), "lake-error");
     }
 }
 
 async function refreshLakeStatus() {
     try {
         const response = await fetch("/policy/{{dataset_id}}/lake-status");
-        const data = await response.json();
+        const data = await parseApiResponse(response);
 
         if (!response.ok) {
-            setLakeStatus("Lake status: error - " + (data.error || "unknown"), "lake-error");
+            setLakeStatus("Lake status: error - " + extractApiError(response, data, "Unable to check lake status"), "lake-error");
             return;
         }
 
@@ -234,7 +272,7 @@ async function refreshLakeStatus() {
             setLakeStatus("Lake status: file not found yet ⏳  (" + data.path + ")", "lake-warn");
         }
     } catch (error) {
-        setLakeStatus("Lake status: connection error", "lake-error");
+        setLakeStatus("Lake status: request failed" + (error?.message ? ` (${error.message})` : ""), "lake-error");
     }
 }
 
@@ -243,10 +281,10 @@ async function exportPolicyToLake() {
         const response = await fetch("/policy/{{dataset_id}}/export-lake", {
             method: "POST"
         });
-        const data = await response.json();
+        const data = await parseApiResponse(response);
 
         if (!response.ok) {
-            setLakeStatus("Export error: " + (data.error || "unknown"), "lake-error");
+            setLakeStatus("Export error: " + extractApiError(response, data, "Unable to export to lake"), "lake-error");
             return;
         }
 
@@ -256,7 +294,7 @@ async function exportPolicyToLake() {
             setLakeStatus("Exported 🌊 (new file created): " + data.path, "lake-ok");
         }
     } catch (error) {
-        setLakeStatus("Export error: connection issue", "lake-error");
+        setLakeStatus("Export error: request failed" + (error?.message ? ` (${error.message})` : ""), "lake-error");
     }
 }
 
@@ -283,17 +321,17 @@ async function addPolicyTest() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify(payload),
         });
-        const data = await response.json();
+        const data = await parseApiResponse(response);
 
         if (!response.ok) {
-            setPolicyCrudStatus("Add error: " + (data.error || "unknown"), "lake-error");
+            setPolicyCrudStatus("Add error: " + extractApiError(response, data, "Unable to add policy test"), "lake-error");
             return;
         }
 
         setPolicyCrudStatus("Policy test added ✅", "lake-ok");
         window.location.reload();
     } catch (error) {
-        setPolicyCrudStatus("Add error: connection issue", "lake-error");
+        setPolicyCrudStatus("Add error: request failed" + (error?.message ? ` (${error.message})` : ""), "lake-error");
     }
 }
 
@@ -306,17 +344,17 @@ async function deletePolicyTest(policyTestId) {
         const response = await fetch(`/policy/{{dataset_id}}/tests/${policyTestId}/delete`, {
             method: "POST"
         });
-        const data = await response.json();
+        const data = await parseApiResponse(response);
 
         if (!response.ok) {
-            setPolicyCrudStatus("Delete error: " + (data.error || "unknown"), "lake-error");
+            setPolicyCrudStatus("Delete error: " + extractApiError(response, data, "Unable to delete policy test"), "lake-error");
             return;
         }
 
         setPolicyCrudStatus("Policy test deleted ✅", "lake-ok");
         window.location.reload();
     } catch (error) {
-        setPolicyCrudStatus("Delete error: connection issue", "lake-error");
+        setPolicyCrudStatus("Delete error: request failed" + (error?.message ? ` (${error.message})` : ""), "lake-error");
     }
 }
 
