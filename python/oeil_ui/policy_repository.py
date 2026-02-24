@@ -53,6 +53,28 @@ class PolicyRepository:
             result = conn.execute(text(query))
             return result.fetchall()
 
+    def get_dataset_by_id(self, dataset_id: int):
+
+        query = """
+        SELECT
+            policy_dataset_id,
+            dataset_name,
+            environment,
+            synapse_allowed,
+            max_synapse_cost_usd,
+            is_active
+        FROM vigie_policy_dataset
+        WHERE policy_dataset_id = :dataset_id
+        """
+
+        with self.engine.connect() as conn:
+            result = conn.execute(
+                text(query),
+                {"dataset_id": dataset_id}
+            ).mappings().first()
+
+        return result
+
     # --------------------------------------------------
     # TESTS
     # --------------------------------------------------
@@ -84,3 +106,173 @@ class PolicyRepository:
                 {"dataset_id": dataset_id}
             )
             return result.fetchall()
+
+    def get_test_types(self):
+
+        query = """
+        SELECT
+            test_type_id,
+            test_code,
+            description,
+            requires_synapse
+        FROM vigie_policy_test_type
+        ORDER BY test_code
+        """
+
+        with self.engine.connect() as conn:
+            result = conn.execute(text(query)).mappings().all()
+
+        return result
+
+    def get_available_columns_for_dataset(self, dataset_name: str):
+
+        query = """
+        SELECT DISTINCT src.column_name
+        FROM (
+            SELECT c.column_name
+            FROM ctrl.dataset d
+            INNER JOIN ctrl.dataset_column c
+                ON d.dataset_id = c.dataset_id
+            WHERE d.dataset_name = :dataset_name
+
+            UNION
+
+            SELECT t.column_name
+            FROM vigie_policy_test t
+            INNER JOIN vigie_policy_dataset p
+                ON t.policy_dataset_id = p.policy_dataset_id
+            WHERE p.dataset_name = :dataset_name
+              AND t.column_name IS NOT NULL
+              AND LTRIM(RTRIM(t.column_name)) <> ''
+        ) src
+        ORDER BY src.column_name
+        """
+
+        with self.engine.connect() as conn:
+            result = conn.execute(
+                text(query),
+                {"dataset_name": dataset_name}
+            ).mappings().all()
+
+        return result
+
+    def find_test_type_by_id(self, test_type_id: int):
+
+        query = """
+        SELECT
+            test_type_id,
+            test_code,
+            description,
+            requires_synapse
+        FROM vigie_policy_test_type
+        WHERE test_type_id = :test_type_id
+        """
+
+        with self.engine.connect() as conn:
+            result = conn.execute(
+                text(query),
+                {"test_type_id": test_type_id}
+            ).mappings().first()
+
+        return result
+
+    def policy_test_exists(
+        self,
+        dataset_id: int,
+        test_type_id: int,
+        column_name,
+        frequency: str,
+    ):
+
+        query = """
+        SELECT TOP 1
+            policy_test_id
+        FROM vigie_policy_test
+        WHERE policy_dataset_id = :dataset_id
+          AND test_type_id = :test_type_id
+          AND ISNULL(column_name, '') = ISNULL(:column_name, '')
+          AND ISNULL(frequency, '') = ISNULL(:frequency, '')
+          AND is_enabled = 1
+        """
+
+        with self.engine.connect() as conn:
+            row = conn.execute(
+                text(query),
+                {
+                    "dataset_id": dataset_id,
+                    "test_type_id": test_type_id,
+                    "column_name": column_name,
+                    "frequency": frequency,
+                }
+            ).mappings().first()
+
+        return row is not None
+
+    def add_policy_test(
+        self,
+        dataset_id: int,
+        test_type_id: int,
+        column_name,
+        frequency: str,
+        hash_algorithm,
+        threshold_value,
+    ):
+
+        query = """
+        INSERT INTO vigie_policy_test
+        (
+            policy_dataset_id,
+            test_type_id,
+            is_enabled,
+            frequency,
+            threshold_value,
+            column_name,
+            hash_algorithm
+        )
+        VALUES
+        (
+            :dataset_id,
+            :test_type_id,
+            1,
+            :frequency,
+            :threshold_value,
+            :column_name,
+            :hash_algorithm
+        );
+
+        SELECT CAST(SCOPE_IDENTITY() AS INT) AS policy_test_id;
+        """
+
+        with self.engine.begin() as conn:
+            row = conn.execute(
+                text(query),
+                {
+                    "dataset_id": dataset_id,
+                    "test_type_id": test_type_id,
+                    "frequency": frequency,
+                    "threshold_value": threshold_value,
+                    "column_name": column_name,
+                    "hash_algorithm": hash_algorithm,
+                }
+            ).mappings().first()
+
+        return row["policy_test_id"]
+
+    def delete_policy_test(self, dataset_id: int, policy_test_id: int):
+
+        query = """
+        DELETE FROM vigie_policy_test
+        WHERE policy_test_id = :policy_test_id
+          AND policy_dataset_id = :dataset_id
+        """
+
+        with self.engine.begin() as conn:
+            result = conn.execute(
+                text(query),
+                {
+                    "policy_test_id": policy_test_id,
+                    "dataset_id": dataset_id,
+                }
+            )
+
+        return result.rowcount

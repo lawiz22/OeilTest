@@ -35,6 +35,35 @@
 <div class="card">
     <h3>Configured Tests</h3>
 
+    <div class="policy-add-grid">
+        <select id="add_test_type_id" class="input-dark" onchange="applyAddFormRules()">
+            {% for tt in test_types %}
+                <option value="{{ tt.test_type_id }}" data-test-code="{{ tt.test_code }}">{{ tt.test_code }}</option>
+            {% endfor %}
+        </select>
+
+        <select id="add_column_name" class="input-dark">
+            <option value="">Select column...</option>
+            {% for col in available_columns %}
+                <option value="{{ col.column_name }}">{{ col.column_name }}</option>
+            {% endfor %}
+        </select>
+
+        <select id="add_frequency" class="input-dark">
+            <option value="DAILY">DAILY</option>
+            <option value="WEEKLY">WEEKLY</option>
+            <option value="MONTHLY">MONTHLY</option>
+        </select>
+
+        <input id="add_hash_algorithm" class="input-dark" type="text" placeholder="hash_algorithm (optional)">
+        <input id="add_threshold_value" class="input-dark" type="number" step="any" placeholder="threshold (optional)">
+        <button class="btn-primary" onclick="addPolicyTest()">➕ Add Policy</button>
+    </div>
+
+    <div id="columnHint" class="mini-hint"></div>
+
+    <div id="policyCrudStatus" class="lake-status">Policy actions: ready.</div>
+
     <table class="policy-table">
         <thead>
             <tr>
@@ -43,6 +72,7 @@
                 <th>Frequency</th>
                 <th>Hash</th>
                 <th>Status</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -58,6 +88,9 @@
                     {% else %}
                         <span class="badge badge-red">DISABLED</span>
                     {% endif %}
+                </td>
+                <td>
+                    <button class="btn-danger js-delete-policy" data-policy-test-id="{{ t.policy_test_id }}">🗑 Delete</button>
                 </td>
             </tr>
             {% endfor %}
@@ -85,6 +118,46 @@ function setLakeStatus(message, kind) {
     const box = document.getElementById("lakeStatus");
     box.textContent = message;
     box.className = "lake-status " + (kind || "");
+}
+
+function setPolicyCrudStatus(message, kind) {
+    const box = document.getElementById("policyCrudStatus");
+    box.textContent = message;
+    box.className = "lake-status " + (kind || "");
+}
+
+function getSelectedTestCode() {
+    const select = document.getElementById("add_test_type_id");
+    const option = select.options[select.selectedIndex];
+    return option ? option.dataset.testCode : "";
+}
+
+function applyAddFormRules() {
+    const testCode = getSelectedTestCode();
+
+    const columnField = document.getElementById("add_column_name");
+    const hashField = document.getElementById("add_hash_algorithm");
+    const thresholdField = document.getElementById("add_threshold_value");
+    const columnHint = document.getElementById("columnHint");
+
+    const isRowCount = testCode === "ROW_COUNT";
+    const isMinMax = testCode === "MIN_MAX";
+
+    columnField.style.display = (isMinMax || testCode === "DISTRIBUTED_SIGNATURE" || testCode === "NULL_COUNT") ? "block" : "none";
+    hashField.style.display = (testCode === "DISTRIBUTED_SIGNATURE") ? "block" : "none";
+    thresholdField.style.display = (isRowCount || isMinMax) ? "none" : "block";
+
+    if (isRowCount) {
+        columnField.value = "";
+        hashField.value = "";
+        thresholdField.value = "";
+    }
+
+    if (isMinMax && columnField.options.length <= 1) {
+        columnHint.textContent = "No dataset columns available yet for MIN_MAX. Load structural metadata first or define a policy column manually in SQL.";
+    } else {
+        columnHint.textContent = "";
+    }
 }
 
 async function refreshLakeStatus() {
@@ -129,7 +202,80 @@ async function exportPolicyToLake() {
     }
 }
 
-window.onload = refreshLakeStatus;
+async function addPolicyTest() {
+    const testCode = getSelectedTestCode();
+    const columnSelect = document.getElementById("add_column_name");
+
+    if (testCode === "MIN_MAX" && columnSelect.options.length <= 1) {
+        setPolicyCrudStatus("Add error: no available columns for MIN_MAX on this dataset.", "lake-error");
+        return;
+    }
+
+    const payload = {
+        test_type_id: document.getElementById("add_test_type_id").value,
+        column_name: document.getElementById("add_column_name").value,
+        frequency: document.getElementById("add_frequency").value,
+        hash_algorithm: document.getElementById("add_hash_algorithm").value,
+        threshold_value: document.getElementById("add_threshold_value").value,
+    };
+
+    try {
+        const response = await fetch("/policy/{{dataset_id}}/tests/add", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            setPolicyCrudStatus("Add error: " + (data.error || "unknown"), "lake-error");
+            return;
+        }
+
+        setPolicyCrudStatus("Policy test added ✅", "lake-ok");
+        window.location.reload();
+    } catch (error) {
+        setPolicyCrudStatus("Add error: connection issue", "lake-error");
+    }
+}
+
+async function deletePolicyTest(policyTestId) {
+    if (!confirm("Delete this policy test?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/policy/{{dataset_id}}/tests/${policyTestId}/delete`, {
+            method: "POST"
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            setPolicyCrudStatus("Delete error: " + (data.error || "unknown"), "lake-error");
+            return;
+        }
+
+        setPolicyCrudStatus("Policy test deleted ✅", "lake-ok");
+        window.location.reload();
+    } catch (error) {
+        setPolicyCrudStatus("Delete error: connection issue", "lake-error");
+    }
+}
+
+function setupDeleteButtons() {
+    const buttons = document.querySelectorAll(".js-delete-policy");
+    buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+            deletePolicyTest(button.dataset.policyTestId);
+        });
+    });
+}
+
+window.onload = () => {
+    refreshLakeStatus();
+    setupDeleteButtons();
+    applyAddFormRules();
+};
 
 </script>
 

@@ -5,19 +5,17 @@ Le modèle de gouvernance de L'ŒIL est **SQL-first**. Les règles de qualité s
 Les règles sont résolues dynamiquement à l'exécution par `PL_Oeil_Quality_Engine`.
 Aucune règle n’est codée en dur dans les pipelines.
 
-## Oeil Policy Manager (UI/CLI)
+## Oeil Control Center (UI)
 
-Le moteur de policy est désormais exploitable via un outil Python dédié:
+Le moteur de policy est désormais exploitable via le Control Center Python:
 
-- Guide complet: [Oeil Policy Manager](../guides/policy_manager.md)
-- UI FastAPI: `python/oeil_policy_manager/policy_ui.py`
-- Templates HTML: `python/oeil_policy_manager/templates/`
+- Guide complet: [Oeil Control Center](../guides/control_center.md)
+- UI FastAPI: `python/oeil_ui/main.py`
+- Templates HTML: `python/oeil_ui/templates/`
 
 ### Aperçu UI
 
-![Policy Manager - Main](../screenshots/policy_manager_main.png)
-
-![Policy Manager - Detail](../screenshots/policy_manager_detail.png)
+Captures du Control Center à compléter (nouvelle version en cours de finalisation).
 
 ## Marquage audit
 

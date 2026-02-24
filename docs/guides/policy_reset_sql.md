@@ -4,7 +4,7 @@ Guide d’utilisation du script [Policy.sql](../../Policy.sql) pour réinitialis
 
 > [!WARNING]
 > **Déprécié (usage recommandé limité).**
-> Pour la gestion courante des policies (création, édition, export), utiliser en priorité le **[Oeil Policy Manager](policy_manager.md)**.
+> Pour la gestion courante des policies (création, édition, export), utiliser en priorité le **[Oeil Control Center](control_center.md)**.
 > Ce document et `Policy.sql` restent conservés pour les besoins de requêtes SQL directes, maintenance avancée et dépannage.
 
 ## Objectif

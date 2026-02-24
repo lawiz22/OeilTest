@@ -1,12 +1,47 @@
 {% extends "base.html" %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="/static/style.css">
+{% endblock %}
+
 {% block content %}
 
 <h1>🧬 Structural Manager – {{ dataset.dataset_name }}</h1>
 
 <div class="card">
-    <button onclick="preview()">Preview Recalculate</button>
-    <button id="updateBtn" onclick="update()">Confirm Update</button>
+    <div class="policy-actions">
+        <button class="btn-primary" onclick="preview()">Preview Recalculate</button>
+        <button id="updateBtn" class="btn-primary" onclick="update()">Confirm Update (SP)</button>
+        <button class="btn-primary" onclick="detectSqlite()">Detect SQLite Structure</button>
+        <button class="btn-primary" onclick="importSqlite()">Import Missing Columns</button>
+        <button class="btn-primary" onclick="applyTypeSuggestions()">Apply Type Suggestions</button>
+    </div>
+    <div id="structStatus" class="lake-status">Structural actions: ready.</div>
+</div>
+
+<div class="card">
+    <h3>Add Table from SQLite (except clients)</h3>
+    <div class="struct-add-grid">
+        <input id="new_dataset_name" class="input-dark" type="text" placeholder="dataset_name (sqlite table)">
+        <button class="btn-primary" onclick="addTableFromSqlite()">➕ Add Table</button>
+    </div>
+    <div class="mini-hint">Creates dataset + initial mapping columns from SQLite, then refreshes structural hash via SP.</div>
+</div>
+
+<div class="card">
+    <h3>Add Mapping Column (one by one)</h3>
+    <div class="struct-add-grid">
+        <input id="col_name" class="input-dark" type="text" placeholder="column_name">
+        <input id="col_type_source" class="input-dark" type="text" placeholder="type_source (ex: INTEGER)">
+        <input id="col_type_sink" class="input-dark" type="text" placeholder="type_sink (ex: BIGINT)">
+        <label><input id="col_nullable" type="checkbox" checked> nullable</label>
+        <label><input id="col_is_key" type="checkbox"> is_key</label>
+        <input id="col_key_ordinal" class="input-dark" type="number" min="1" placeholder="key_ordinal (optional)">
+        <label><input id="col_is_tokenized" type="checkbox"> tokenized</label>
+        <input id="col_normalization_rule" class="input-dark" type="text" placeholder="normalization_rule (optional)">
+        <label><input id="col_is_control_excluded" type="checkbox"> control_excluded</label>
+        <button class="btn-primary" onclick="addColumn()">➕ Add Column</button>
+    </div>
 </div>
 
 <div class="card">
@@ -15,19 +50,62 @@
 </div>
 
 <div class="card">
-    <h3>JSON Used For Hash</h3>
-    <pre id="json" style="white-space:pre-wrap;"></pre>
+    <h3>SQLite Detected Columns</h3>
+    <pre id="sqliteJson" class="policy-json"></pre>
 </div>
 
+<div class="card">
+    <h3>Canonical Contract JSON (Before Hash)</h3>
+    <pre id="canonicalJson" class="policy-json"></pre>
+</div>
+
+<div class="card">
+    <h3>JSON Used For Hash</h3>
+    <pre id="json" class="policy-json"></pre>
+</div>
+
+<div id="structFlags" data-clients-locked="{{ 1 if is_clients_locked else 0 }}" style="display:none;"></div>
+
 <script>
+
+const isClientsLocked = document.getElementById("structFlags").dataset.clientsLocked === "1";
+
+function setStructStatus(message, kind) {
+    const box = document.getElementById("structStatus");
+    box.textContent = message;
+    box.className = "lake-status " + (kind || "");
+}
+
+async function previewCanonical() {
+    const response = await fetch("/struct/{{dataset_id}}/canonical-preview");
+    const data = await response.json();
+
+    if (!response.ok) {
+        document.getElementById("canonicalJson").textContent = "Error: " + (data.error || "unknown");
+        return;
+    }
+
+    const payload = {
+        dataset: data.contract.dataset,
+        source_system: data.contract.source_system,
+        mapping_version: data.contract.mapping_version,
+        columns: data.contract.columns,
+    };
+
+    document.getElementById("canonicalJson").textContent = JSON.stringify(payload, null, 2);
+}
 
 async function preview() {
 
     const response = await fetch("/struct/{{dataset_id}}/preview");
     const data = await response.json();
 
-    document.getElementById("json").textContent =
-        JSON.stringify(JSON.parse(data.json), null, 2);
+    try {
+        document.getElementById("json").textContent =
+            JSON.stringify(JSON.parse(data.json), null, 2);
+    } catch (e) {
+        document.getElementById("json").textContent = data.json || "(empty)";
+    }
 
     let color = data.status === "MATCH" ? "lime" : "red";
 
@@ -37,10 +115,15 @@ async function preview() {
         "<b>Status:</b> <span style='color:" + color + "'>" + data.status + "</span>";
 
     document.getElementById("updateBtn").disabled =
-        (data.status === "MATCH");
+        (data.status === "MATCH") || isClientsLocked;
 }
 
 async function update() {
+
+    if (isClientsLocked) {
+        setStructStatus("clients is locked from structural writes.", "lake-warn");
+        return;
+    }
 
     const response = await fetch("/struct/{{dataset_id}}/update", {
         method: "POST"
@@ -48,11 +131,139 @@ async function update() {
 
     const data = await response.json();
 
-    alert("Structural hash updated to: " + data.new_hash);
+    if (!response.ok) {
+        setStructStatus("Update error: " + (data.error || "unknown"), "lake-error");
+        return;
+    }
+
+    setStructStatus("Structural hash updated via SP ✅", "lake-ok");
     preview();
+    previewCanonical();
 }
 
-window.onload = preview;
+async function detectSqlite() {
+    const response = await fetch("/struct/{{dataset_id}}/sqlite-detect");
+    const data = await response.json();
+
+    if (!response.ok) {
+        setStructStatus("Detect error: " + (data.error || "unknown"), "lake-error");
+        return;
+    }
+
+    document.getElementById("sqliteJson").textContent = JSON.stringify(data.columns, null, 2);
+    setStructStatus("SQLite structure detected ✅", "lake-ok");
+}
+
+async function importSqlite() {
+    if (isClientsLocked) {
+        setStructStatus("clients is locked from structural writes.", "lake-warn");
+        return;
+    }
+
+    const response = await fetch("/struct/{{dataset_id}}/import-sqlite", {
+        method: "POST"
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+        setStructStatus("Import error: " + (data.error || "unknown"), "lake-error");
+        return;
+    }
+
+    setStructStatus("Imported missing columns: " + data.inserted_columns + " ✅", "lake-ok");
+    preview();
+    detectSqlite();
+    previewCanonical();
+}
+
+async function applyTypeSuggestions() {
+    if (isClientsLocked) {
+        setStructStatus("clients is locked from structural writes.", "lake-warn");
+        return;
+    }
+
+    const response = await fetch("/struct/{{dataset_id}}/apply-type-suggestions", {
+        method: "POST"
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+        setStructStatus("Type suggestions error: " + (data.error || "unknown"), "lake-error");
+        return;
+    }
+
+    setStructStatus("Type suggestions applied ✅ Updated columns: " + data.updated_columns, "lake-ok");
+    preview();
+    previewCanonical();
+}
+
+async function addTableFromSqlite() {
+    const datasetName = document.getElementById("new_dataset_name").value.trim();
+    if (!datasetName) {
+        setStructStatus("Add table error: dataset_name is required", "lake-error");
+        return;
+    }
+
+    const response = await fetch("/struct/tables/create-from-sqlite", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({dataset_name: datasetName})
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+        setStructStatus("Add table error: " + (data.error || "unknown"), "lake-error");
+        return;
+    }
+
+    setStructStatus("Dataset ready ✅ redirecting to structural page...", "lake-ok");
+    window.location.href = "/struct/" + data.dataset_id;
+}
+
+async function addColumn() {
+    if (isClientsLocked) {
+        setStructStatus("clients is locked from structural writes.", "lake-warn");
+        return;
+    }
+
+    const payload = {
+        column_name: document.getElementById("col_name").value,
+        type_source: document.getElementById("col_type_source").value,
+        type_sink: document.getElementById("col_type_sink").value,
+        nullable: document.getElementById("col_nullable").checked,
+        is_key: document.getElementById("col_is_key").checked,
+        key_ordinal: document.getElementById("col_key_ordinal").value || null,
+        is_tokenized: document.getElementById("col_is_tokenized").checked,
+        normalization_rule: document.getElementById("col_normalization_rule").value,
+        is_control_excluded: document.getElementById("col_is_control_excluded").checked,
+    };
+
+    const response = await fetch("/struct/{{dataset_id}}/columns/add", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+        setStructStatus("Add column error: " + (data.error || "unknown"), "lake-error");
+        return;
+    }
+
+    setStructStatus("Column added: " + data.column_name + " ✅", "lake-ok");
+    preview();
+    detectSqlite();
+    previewCanonical();
+}
+
+window.onload = () => {
+    if (isClientsLocked) {
+        setStructStatus("clients dataset is read-only in this UI.", "lake-warn");
+    }
+    preview();
+    detectSqlite();
+    previewCanonical();
+};
 
 </script>
 

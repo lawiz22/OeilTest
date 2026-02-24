@@ -1,6 +1,7 @@
 # modules/policy_routes.py
 
 import os
+from decimal import Decimal
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
@@ -74,6 +75,10 @@ def policy_page(request: Request, dataset_id: int):
             {"dataset_id": dataset_id}
         ).mappings().all()
 
+    repo = PolicyRepository(AZURE_SQL_CONN) if AZURE_SQL_CONN else None
+    test_types = repo.get_test_types() if repo else []
+    available_columns = repo.get_available_columns_for_dataset(dataset["dataset_name"]) if repo else []
+
     if not dataset:
         return HTMLResponse("<h2>Policy dataset not found</h2>", status_code=404)
 
@@ -82,11 +87,103 @@ def policy_page(request: Request, dataset_id: int):
         "policy.html",
         context={
             "dataset": dataset,
-            "tests": tests
+            "tests": tests,
+            "test_types": test_types,
+            "available_columns": available_columns,
         },
         dataset_id=dataset_id,
         active_tab="policy"
     )
+
+
+@router.post("/policy/{dataset_id}/tests/add")
+async def add_policy_test(dataset_id: int, request: Request):
+
+    if not AZURE_SQL_CONN:
+        return JSONResponse({"error": "OEIL_AZURE_SQL_CONN is not configured"}, status_code=500)
+
+    payload = await request.json()
+
+    test_type_id = payload.get("test_type_id")
+    frequency = (payload.get("frequency") or "DAILY").strip().upper()
+    column_name = (payload.get("column_name") or "").strip() or None
+    hash_algorithm = (payload.get("hash_algorithm") or "").strip() or None
+    threshold_raw = payload.get("threshold_value")
+
+    if not test_type_id:
+        return JSONResponse({"error": "test_type_id is required"}, status_code=400)
+
+    try:
+        test_type_id = int(test_type_id)
+    except (TypeError, ValueError):
+        return JSONResponse({"error": "test_type_id must be numeric"}, status_code=400)
+
+    if frequency not in {"DAILY", "WEEKLY", "MONTHLY"}:
+        return JSONResponse({"error": "frequency must be DAILY, WEEKLY or MONTHLY"}, status_code=400)
+
+    threshold_value = None
+    if threshold_raw not in (None, ""):
+        try:
+            threshold_value = Decimal(str(threshold_raw))
+        except Exception:
+            return JSONResponse({"error": "threshold_value must be numeric"}, status_code=400)
+
+    repo = PolicyRepository(AZURE_SQL_CONN)
+
+    dataset = repo.get_dataset_by_id(dataset_id)
+    if dataset is None:
+        return JSONResponse({"error": "Policy dataset not found"}, status_code=404)
+
+    test_type = repo.find_test_type_by_id(test_type_id)
+    if test_type is None:
+        return JSONResponse({"error": "Test type not found"}, status_code=404)
+
+    if test_type["requires_synapse"] and not dataset["synapse_allowed"]:
+        return JSONResponse(
+            {"error": f"{test_type['test_code']} requires Synapse but this dataset does not allow Synapse."},
+            status_code=400
+        )
+
+    if repo.policy_test_exists(dataset_id, test_type_id, column_name, frequency):
+        return JSONResponse(
+            {"error": "This policy test already exists for same type/column/frequency."},
+            status_code=409
+        )
+
+    if test_type["test_code"] == "DISTRIBUTED_SIGNATURE" and not hash_algorithm:
+        hash_algorithm = "SHA256"
+
+    if test_type["test_code"] == "MIN_MAX" and not column_name:
+        return JSONResponse({"error": "MIN_MAX requires a column_name"}, status_code=400)
+
+    new_id = repo.add_policy_test(
+        dataset_id=dataset_id,
+        test_type_id=test_type_id,
+        column_name=column_name,
+        frequency=frequency,
+        hash_algorithm=hash_algorithm,
+        threshold_value=threshold_value,
+    )
+
+    return {
+        "status": "CREATED",
+        "policy_test_id": new_id,
+    }
+
+
+@router.post("/policy/{dataset_id}/tests/{policy_test_id}/delete")
+def delete_policy_test(dataset_id: int, policy_test_id: int):
+
+    if not AZURE_SQL_CONN:
+        return JSONResponse({"error": "OEIL_AZURE_SQL_CONN is not configured"}, status_code=500)
+
+    repo = PolicyRepository(AZURE_SQL_CONN)
+    deleted = repo.delete_policy_test(dataset_id=dataset_id, policy_test_id=policy_test_id)
+
+    if deleted == 0:
+        return JSONResponse({"error": "Policy test not found"}, status_code=404)
+
+    return {"status": "DELETED", "policy_test_id": policy_test_id}
 
 
 # ==========================================================
