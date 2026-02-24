@@ -1,6 +1,6 @@
 # 👁️ L'ŒIL — Documentation
 
-Portail principal pour naviguer L’ŒIL sans friction pendant une démo, puis approfondir progressivement.
+Portail principal pour naviguer
 
 ## 🚦 Point de départ (2 minutes)
 
