@@ -102,6 +102,15 @@
                     {% endif %}
                 </td>
                 <td>
+                    <button
+                        class="btn-primary js-edit-policy"
+                        data-policy-test-id="{{ t.policy_test_id }}"
+                        data-test-code="{{ t.test_code }}"
+                        data-column-name="{{ t.column_name or '' }}"
+                        data-frequency="{{ t.frequency or '' }}"
+                        data-hash-algorithm="{{ t.hash_algorithm or '' }}"
+                        data-threshold-value="{{ '' if t.threshold_value is none else t.threshold_value }}"
+                    >✏️ Edit</button>
                     <button class="btn-danger js-delete-policy" data-policy-test-id="{{ t.policy_test_id }}">🗑 Delete</button>
                 </td>
             </tr>
@@ -227,8 +236,15 @@ function applyAddFormRules() {
         if (!hashField.value) {
             hashField.value = "SHA256";
         }
+        if (!columnField.value && columnField.options.length > 1) {
+            columnField.selectedIndex = 1;
+        }
     } else {
         distributedSignatureHint.textContent = "";
+    }
+
+    if (isMinMax && !columnField.value && columnField.options.length > 1) {
+        columnField.selectedIndex = 1;
     }
 }
 
@@ -302,6 +318,11 @@ async function addPolicyTest() {
     const testCode = getSelectedTestCode();
     const columnSelect = document.getElementById("add_column_name");
 
+    if (testCode === "DISTRIBUTED_SIGNATURE" && !columnSelect.value) {
+        setPolicyCrudStatus("Add error: DISTRIBUTED_SIGNATURE requires a column.", "lake-error");
+        return;
+    }
+
     if (testCode === "MIN_MAX" && columnSelect.options.length <= 1) {
         setPolicyCrudStatus("Add error: no available columns for MIN_MAX on this dataset.", "lake-error");
         return;
@@ -358,6 +379,82 @@ async function deletePolicyTest(policyTestId) {
     }
 }
 
+async function editPolicyTest(button) {
+    const policyTestId = button.dataset.policyTestId;
+    const testCode = (button.dataset.testCode || "").toUpperCase();
+
+    const currentFrequency = (button.dataset.frequency || "DAILY").toUpperCase();
+    const currentColumn = button.dataset.columnName || "";
+    const currentHashAlgorithm = button.dataset.hashAlgorithm || "SHA256";
+    const currentThreshold = button.dataset.thresholdValue || "";
+
+    const frequencyInput = prompt(`Edit frequency for ${testCode} (DAILY/WEEKLY/MONTHLY):`, currentFrequency);
+    if (frequencyInput === null) {
+        return;
+    }
+    const frequency = (frequencyInput || "").trim().toUpperCase();
+    if (!["DAILY", "WEEKLY", "MONTHLY"].includes(frequency)) {
+        setPolicyCrudStatus("Edit error: frequency must be DAILY, WEEKLY or MONTHLY.", "lake-error");
+        return;
+    }
+
+    let columnName = currentColumn;
+    if (["DISTRIBUTED_SIGNATURE", "MIN_MAX", "NULL_COUNT"].includes(testCode)) {
+        const columnInput = prompt(`Edit column_name for ${testCode}:`, currentColumn);
+        if (columnInput === null) {
+            return;
+        }
+        columnName = (columnInput || "").trim();
+    }
+
+    if ((testCode === "DISTRIBUTED_SIGNATURE" || testCode === "MIN_MAX") && !columnName) {
+        setPolicyCrudStatus(`Edit error: ${testCode} requires a column_name.`, "lake-error");
+        return;
+    }
+
+    let hashAlgorithm = "";
+    if (testCode === "DISTRIBUTED_SIGNATURE") {
+        const hashInput = prompt("Edit hash_algorithm for DISTRIBUTED_SIGNATURE:", currentHashAlgorithm || "SHA256");
+        if (hashInput === null) {
+            return;
+        }
+        hashAlgorithm = (hashInput || "").trim() || "SHA256";
+    }
+
+    let thresholdValue = currentThreshold;
+    if (!["ROW_COUNT", "MIN_MAX"].includes(testCode)) {
+        const thresholdInput = prompt("Edit threshold_value (optional, blank to clear):", currentThreshold);
+        if (thresholdInput === null) {
+            return;
+        }
+        thresholdValue = (thresholdInput || "").trim();
+    }
+
+    try {
+        const response = await fetch(`/policy/{{dataset_id}}/tests/${policyTestId}/update`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                frequency,
+                column_name: columnName,
+                hash_algorithm: hashAlgorithm,
+                threshold_value: thresholdValue,
+            }),
+        });
+        const data = await parseApiResponse(response);
+
+        if (!response.ok) {
+            setPolicyCrudStatus("Edit error: " + extractApiError(response, data, "Unable to update policy test"), "lake-error");
+            return;
+        }
+
+        setPolicyCrudStatus("Policy test updated ✅", "lake-ok");
+        window.location.reload();
+    } catch (error) {
+        setPolicyCrudStatus("Edit error: request failed" + (error?.message ? ` (${error.message})` : ""), "lake-error");
+    }
+}
+
 function setupDeleteButtons() {
     const buttons = document.querySelectorAll(".js-delete-policy");
     buttons.forEach((button) => {
@@ -367,9 +464,19 @@ function setupDeleteButtons() {
     });
 }
 
+function setupEditButtons() {
+    const buttons = document.querySelectorAll(".js-edit-policy");
+    buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+            editPolicyTest(button);
+        });
+    });
+}
+
 window.onload = () => {
     refreshLakeStatus();
     setupDeleteButtons();
+    setupEditButtons();
     applyAddFormRules();
     renderSynapseAllowed(getSynapseAllowedFromPage());
     exportPolicy();

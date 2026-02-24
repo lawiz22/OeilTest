@@ -253,6 +253,9 @@ async def add_policy_test(dataset_id: int, request: Request):
     if test_type["test_code"] == "DISTRIBUTED_SIGNATURE" and not hash_algorithm:
         hash_algorithm = "SHA256"
 
+    if test_type["test_code"] == "DISTRIBUTED_SIGNATURE" and not column_name:
+        return JSONResponse({"error": "DISTRIBUTED_SIGNATURE requires a column_name"}, status_code=400)
+
     if test_type["test_code"] == "MIN_MAX" and not column_name:
         return JSONResponse({"error": "MIN_MAX requires a column_name"}, status_code=400)
 
@@ -304,6 +307,93 @@ def delete_policy_test(dataset_id: int, policy_test_id: int):
         return JSONResponse({"error": "Policy test not found"}, status_code=404)
 
     return {"status": "DELETED", "policy_test_id": policy_test_id}
+
+
+@router.post("/policy/{dataset_id}/tests/{policy_test_id}/update")
+async def update_policy_test(dataset_id: int, policy_test_id: int, request: Request):
+
+    if not AZURE_SQL_CONN:
+        return JSONResponse({"error": "OEIL_AZURE_SQL_CONN is not configured"}, status_code=500)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON payload"}, status_code=400)
+
+    frequency = (payload.get("frequency") or "DAILY").strip().upper()
+    column_name = (payload.get("column_name") or "").strip() or None
+    hash_algorithm = (payload.get("hash_algorithm") or "").strip() or None
+    threshold_raw = payload.get("threshold_value")
+
+    if frequency not in {"DAILY", "WEEKLY", "MONTHLY"}:
+        return JSONResponse({"error": "frequency must be DAILY, WEEKLY or MONTHLY"}, status_code=400)
+
+    threshold_value = None
+    if threshold_raw not in (None, ""):
+        try:
+            threshold_value = Decimal(str(threshold_raw))
+        except Exception:
+            return JSONResponse({"error": "threshold_value must be numeric"}, status_code=400)
+
+    repo = PolicyRepository(AZURE_SQL_CONN)
+
+    dataset = repo.get_dataset_by_id(dataset_id)
+    if dataset is None:
+        return JSONResponse({"error": "Policy dataset not found"}, status_code=404)
+
+    current_test = repo.get_policy_test_by_id(dataset_id=dataset_id, policy_test_id=policy_test_id)
+    if current_test is None:
+        return JSONResponse({"error": "Policy test not found"}, status_code=404)
+
+    test_code = (current_test.get("test_code") or "").strip().upper()
+
+    if test_code == "DISTRIBUTED_SIGNATURE" and not column_name:
+        return JSONResponse({"error": "DISTRIBUTED_SIGNATURE requires a column_name"}, status_code=400)
+
+    if test_code == "MIN_MAX" and not column_name:
+        return JSONResponse({"error": "MIN_MAX requires a column_name"}, status_code=400)
+
+    if test_code == "DISTRIBUTED_SIGNATURE" and not hash_algorithm:
+        hash_algorithm = "SHA256"
+
+    if test_code != "DISTRIBUTED_SIGNATURE":
+        hash_algorithm = None
+
+    if repo.policy_test_exists(
+        dataset_id=dataset_id,
+        test_type_id=current_test["test_type_id"],
+        column_name=column_name,
+        frequency=frequency,
+        exclude_policy_test_id=policy_test_id,
+    ):
+        return JSONResponse(
+            {"error": "Another active policy test already exists for same type/column/frequency."},
+            status_code=409,
+        )
+
+    try:
+        updated = repo.update_policy_test(
+            dataset_id=dataset_id,
+            policy_test_id=policy_test_id,
+            column_name=column_name,
+            frequency=frequency,
+            hash_algorithm=hash_algorithm,
+            threshold_value=threshold_value,
+        )
+    except SQLAlchemyError as exc:
+        db_message = str(getattr(exc, "orig", exc) or "").strip()
+        return JSONResponse(
+            {"error": f"Database error while updating policy test: {db_message or 'unknown database error'}"},
+            status_code=500,
+        )
+
+    if updated == 0:
+        return JSONResponse({"error": "Policy test not found"}, status_code=404)
+
+    return {
+        "status": "UPDATED",
+        "policy_test_id": policy_test_id,
+    }
 
 
 @router.post("/policy/{dataset_id}/synapse-allowed")

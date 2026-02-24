@@ -182,6 +182,7 @@ class PolicyRepository:
         test_type_id: int,
         column_name,
         frequency: str,
+        exclude_policy_test_id=None,
     ):
 
         query = """
@@ -193,6 +194,7 @@ class PolicyRepository:
           AND ISNULL(column_name, '') = ISNULL(:column_name, '')
           AND ISNULL(frequency, '') = ISNULL(:frequency, '')
           AND is_enabled = 1
+                    AND (:exclude_policy_test_id IS NULL OR policy_test_id <> :exclude_policy_test_id)
         """
 
         with self.engine.connect() as conn:
@@ -203,6 +205,7 @@ class PolicyRepository:
                     "test_type_id": test_type_id,
                     "column_name": column_name,
                     "frequency": frequency,
+                    "exclude_policy_test_id": exclude_policy_test_id,
                 }
             ).mappings().first()
 
@@ -259,6 +262,73 @@ class PolicyRepository:
             raise RuntimeError("Insert completed but no policy_test_id was returned")
 
         return row["policy_test_id"]
+
+    def get_policy_test_by_id(self, dataset_id: int, policy_test_id: int):
+
+        query = """
+        SELECT
+            t.policy_test_id,
+            t.policy_dataset_id,
+            t.test_type_id,
+            tt.test_code,
+            t.column_name,
+            t.frequency,
+            t.hash_algorithm,
+            t.threshold_value,
+            t.is_enabled
+        FROM vigie_policy_test t
+        INNER JOIN vigie_policy_test_type tt
+            ON t.test_type_id = tt.test_type_id
+        WHERE t.policy_dataset_id = :dataset_id
+          AND t.policy_test_id = :policy_test_id
+        """
+
+        with self.engine.connect() as conn:
+            row = conn.execute(
+                text(query),
+                {
+                    "dataset_id": dataset_id,
+                    "policy_test_id": policy_test_id,
+                },
+            ).mappings().first()
+
+        return row
+
+    def update_policy_test(
+        self,
+        dataset_id: int,
+        policy_test_id: int,
+        column_name,
+        frequency: str,
+        hash_algorithm,
+        threshold_value,
+    ):
+
+        query = """
+        UPDATE vigie_policy_test
+        SET
+            column_name = :column_name,
+            frequency = :frequency,
+            hash_algorithm = :hash_algorithm,
+            threshold_value = :threshold_value
+        WHERE policy_dataset_id = :dataset_id
+          AND policy_test_id = :policy_test_id
+        """
+
+        with self.engine.begin() as conn:
+            result = conn.execute(
+                text(query),
+                {
+                    "dataset_id": dataset_id,
+                    "policy_test_id": policy_test_id,
+                    "column_name": column_name,
+                    "frequency": frequency,
+                    "hash_algorithm": hash_algorithm,
+                    "threshold_value": threshold_value,
+                },
+            )
+
+        return result.rowcount
 
     def delete_policy_test(self, dataset_id: int, policy_test_id: int):
 
