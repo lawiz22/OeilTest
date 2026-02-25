@@ -1,20 +1,7 @@
 
 # 👁️ L'ŒIL — Data Quality & Integrity Framework
 
-## Principaux outils visuels
 
-
-### Dashboard Executive (SLA)
-<img src="docs/screenshots/PowerBi_Main_Execv2.png" alt="Dashboard Executive" width="400" />
-
-### Control Center (UI)
-<img src="docs/screenshots/cc_home.png" alt="Control Center" width="350" />
-
-### Synthèse Qualité
-<img src="docs/screenshots/BI_Qualite_1.png" alt="Qualité" width="350" />
-
-### Vue Structurelle
-<img src="docs/screenshots/cc_structural.png" alt="Vue Structurelle" width="350" />
 
 
 [![Build](https://github.com/lawiz22/OeilTest/actions/workflows/validate-sql-json.yml/badge.svg)](https://github.com/lawiz22/OeilTest/actions/workflows/validate-sql-json.yml)
@@ -34,14 +21,21 @@
 - Contrôle l’intégrité structurelle par hash (contract_hash vs detected_hash).
 - Génère des traces d’audit exploitables pour runbook et reporting.
 
-## 🧱 Architecture logique (6 blocs)
 
-- Ingestion & orchestration: `PL_Bronze_*`, `PL_Oeil_Guardian`, `PL_Oeil_Core`.
-- Contrat de run: Control File (CTRL) et tables `vigie_*`.
-- Moteur policy: règles dataset/environnement + tests activables.
-- Moteur SLA: calculs ADF / Synapse / OEIL.
-- Gate structurel: comparaison hash contrat vs hash détecté.
-- Observabilité: logs, indicateurs et dashboard.
+## 🖼️ Aperçu visuel des outils principaux
+
+### Dashboard Executive (SLA)
+<img src="docs/screenshots/PowerBi_Main_Execv2.png" alt="Dashboard Executive" width="400" />
+
+### Synthèse Qualité
+<img src="docs/screenshots/BI_Qualite_1.png" alt="Qualité" width="350" />
+
+### Control Center (UI)
+<img src="docs/screenshots/cc_home.png" alt="Control Center" width="350" />
+
+#### Validateur de structure de tables pour qualité des validations
+<img src="docs/screenshots/cc_structural.png" alt="Validateur de structure de tables" width="350" />
+
 
 ## 🚀 Commandes rapides
 
