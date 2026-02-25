@@ -1,4 +1,14 @@
+
 # 👁️ L'ŒIL — Data Quality & Integrity Framework
+
+## Principaux outils visuels
+
+### Dashboard Executive (SLA)
+![Dashboard Executive](docs/screenshots/PowerBi_Main_Execv2.png)
+
+### Control Center (UI)
+![Control Center](docs/screenshots/cc_home.png)
+
 
 [![Build](https://github.com/lawiz22/OeilTest/actions/workflows/validate-sql-json.yml/badge.svg)](https://github.com/lawiz22/OeilTest/actions/workflows/validate-sql-json.yml)
 ![Tests](https://img.shields.io/badge/tests-e2e--demo-blue)

@@ -3,19 +3,44 @@
 Le dashboard L'ŒIL est l'interface principale de surveillance. Il consolide les métriques de tous les runs d'extraction.
 
 
+
 ![Dashboard Preview](../screenshots/PowerBi_Main_Execv2.png)
 
-## Vue QA — Suivi des tests de qualité
+## Vue Executive — Synthèse SLA
+
+![Executive SLA](../screenshots/BI_Exec.png)
+
+**Analyse du graphique :**
+
+- Ce visuel présente la synthèse des SLA pour tous les runs.
+- Les indicateurs principaux (FAST, SLOW, VERY SLOW) sont mis en avant, permettant d’identifier rapidement les runs critiques.
+- La segmentation par source, dataset, périodicité et mois permet un filtrage dynamique.
+- Les tendances de performance et de durée sont visibles sur la période.
+
+## Vue Qualité — Résumé des tests
+
+![Résumé Qualité](../screenshots/BI_Qualite_1.png)
+
+**Analyse du graphique :**
+
+- Ce visuel résume la qualité globale des tests exécutés.
+- On observe le taux de réussite, le taux d’échec, et la répartition par type de test (CHECKSUM, CHECKSUM_STRUCTURE, DISTRIBUTED_SIGNATURE).
+- Les pics d’exécution et les variations du taux d’échec sont facilement identifiables.
+- Ce résumé permet de piloter la qualité et d’anticiper les dérives.
+
+
+
+## Vue QA — Suivi détaillé des tests
 
 ![QA Test Results](../screenshots/PowerBi_QA_v2.png)
 
 **Analyse du graphique :**
 
-- **Total Tests Executed** : 147 tests exécutés sur la période affichée.
-- **Total Tests Pass** : 87 (ligne verte), **Total Tests Fail** : 13 (ligne rouge), soit un taux d’échec de 9%.
-- **Répartition par test_code** : Les barres colorées montrent la distribution des tests CHECKSUM, CHECKSUM_STRUCTURE et DISTRIBUTED_SIGNATURE par date.
-- **Tendance** : On observe des pics d’exécution autour du 17 mai et du 14 juin, avec une stabilité du taux de réussite après chaque pic.
-- **Lecture rapide** : La majorité des tests sont des CHECKSUM (bleu), les nouveaux types CHECKSUM_STRUCTURE (jaune) et DISTRIBUTED_SIGNATURE (orange) sont bien intégrés et suivis.
+- Total Tests Executed : 147 tests exécutés sur la période affichée.
+- Total Tests Pass : 87 (ligne verte), Total Tests Fail : 13 (ligne rouge), soit un taux d’échec de 9%.
+- Répartition par test_code : Les barres colorées montrent la distribution des tests CHECKSUM, CHECKSUM_STRUCTURE et DISTRIBUTED_SIGNATURE par date.
+- Tendance : On observe des pics d’exécution autour du 17 mai et du 14 juin, avec une stabilité du taux de réussite après chaque pic.
+- Lecture rapide : La majorité des tests sont des CHECKSUM (bleu), les nouveaux types CHECKSUM_STRUCTURE (jaune) et DISTRIBUTED_SIGNATURE (orange) sont bien intégrés et suivis.
 
 
 ## Indicateurs Clés
