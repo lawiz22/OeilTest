@@ -3,11 +3,18 @@
 
 ## Principaux outils visuels
 
+
 ### Dashboard Executive (SLA)
-![Dashboard Executive](docs/screenshots/PowerBi_Main_Execv2.png)
+<img src="docs/screenshots/PowerBi_Main_Execv2.png" alt="Dashboard Executive" width="400" />
 
 ### Control Center (UI)
-![Control Center](docs/screenshots/cc_home.png)
+<img src="docs/screenshots/cc_home.png" alt="Control Center" width="350" />
+
+### Synthèse Qualité
+<img src="docs/screenshots/BI_Qualite_1.png" alt="Qualité" width="350" />
+
+### Vue Structurelle
+<img src="docs/screenshots/cc_structural.png" alt="Vue Structurelle" width="350" />
 
 
 [![Build](https://github.com/lawiz22/OeilTest/actions/workflows/validate-sql-json.yml/badge.svg)](https://github.com/lawiz22/OeilTest/actions/workflows/validate-sql-json.yml)
