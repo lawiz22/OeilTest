@@ -44,6 +44,7 @@ Portail principal pour naviguer
 - [Annexe B — Hypothèses & limites statistiques de la DDS](appendices/annexe_b_hypotheses_limites_statistiques_dds.md)
 - [Annexe C — Protocole de test empirique DDS](appendices/annexe_c_protocole_test_empirique_dds.md)
 - [Power BI Dashboard](guides/powerbi_dashboard.md)
+- [Plan migration Synapse + DevOps](guides/synapse_migration_devops_plan.md)
 
 ---
 
